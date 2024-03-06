@@ -317,7 +317,19 @@ CLEANUP_SIGN:
 }
 
 void print_helpmsg(){
+    std::cout << "Usage: figinstall [ -?Ih ] | [ [ -L | -l ] | [ -rR ] ] [ font ]" << std::endl;
+    return;
+}
 
+void print_infomsg(){
+    std::cout << "FIGinstall, FIGlet Font Installer" << std::endl
+              << "Copyright (C) 2024 Sichen Lyu" << std::endl
+              << "Version: " << FIGLET4WINVERSION << ", date: " << FIGLET4WINBUILDTIME << std::endl
+              << "FIGlet4Win, along with the various FIGlet fonts and documentation, may be" << std::endl
+              << "freely copied and distributed." << std::endl
+              << "Contributes, bug reports and feature requests to FIGlet4Win are welcome." << std::endl
+              << "Repo-site: <https://github.com/Ace-Radom/figlet4win>" << std::endl;
+    return;
 }
 
 int main( int argc , char** argv ){
@@ -331,10 +343,11 @@ int main( int argc , char** argv ){
     }
 
     int c;
-    while ( ( c = getopt( argc , argv , "?hrLl:R" ) ) != -1 )
+    while ( ( c = getopt( argc , argv , "?IhrLl:R" ) ) != -1 )
     {
         switch ( c ) {
             case '?': print_helpmsg(); exit( OK ); break;
+            case 'I': print_infomsg(); exit( OK ); break;
             case 'h': print_helpmsg(); exit( OK ); break;
             case 'r': restrictive_mode = true; break;
             case 'L': opt_list = true; break;
