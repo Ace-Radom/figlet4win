@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(figlet4win VERSION 0.9.9 LANGUAGES C CXX)
+project(figlet4win VERSION 1.0.0 LANGUAGES C CXX)
 
 option(FIGLET_ENABLE_TLF_FONTS "Enable support for Sam Hocevar's TOIlet fonts" ON)
 

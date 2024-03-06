@@ -3,7 +3,7 @@
         <Upgrade Id="CC11CD4A-3AEC-4D65-81ED-65790266A448">
             <UpgradeVersion OnlyDetect="yes" Property="PREVIOUSFOUND"
                 Minimum="0.0.1" IncludeMinimum="yes"
-                Maximum="0.9.9" IncludeMaximum="no"/>
+                Maximum="1.0.0" IncludeMaximum="no"/>
             <UpgradeVersion OnlyDetect="yes" Property="NEWERFOUND"
                 Minimum="1.0.1" IncludeMinimum="yes" />
             <UpgradeVersion OnlyDetect="yes" Property="SELFFOUND"
