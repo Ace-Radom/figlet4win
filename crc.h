@@ -49,10 +49,10 @@
 extern "C" {
 #endif
 
-unsigned long CrcUpdate(          /* returns updated crc         */
-  unsigned long crc,              /* starting crc                */
-  unsigned char *buffer,          /* buffer to use to update crc */
-  long length                     /* length of buffer            */
+unsigned long CrcUpdate(                       /* returns updated crc         */
+                        unsigned long crc,     /* starting crc                */
+                        unsigned char *buffer, /* buffer to use to update crc */
+                        long length            /* length of buffer            */
 );
 
 #ifdef __cplusplus

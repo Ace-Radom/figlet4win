@@ -60,27 +60,29 @@ extern "C" {
 #endif
 
 /* Routine to initialize inflate decompression */
-void *InflateInitialize(                      /* returns InflateState       */
-  void *AppState,                             /* for passing to putbuffer   */
-  int (*putbuffer_ptr)(                       /* returns 0 on success       */
-    void *AppState,                           /* opaque ptr from Initialize */
-    unsigned char *buffer,                    /* buffer to put              */
-    long length                               /* length of buffer           */
-  ),
-  void *(*malloc_ptr)(long length),           /* utility routine            */
-  void (*free_ptr)(void *buffer)              /* utility routine            */
+void *InflateInitialize(                     /* returns InflateState       */
+                        void *AppState,      /* for passing to putbuffer   */
+                        int (*putbuffer_ptr)(/* returns 0 on success       */
+                                             void *AppState, /* opaque ptr from
+                                                                Initialize */
+                                             unsigned char
+                                                 *buffer, /* buffer to put */
+                                             long length  /* length of buffer  */
+                                             ),
+                        void *(*malloc_ptr)(long length), /* utility routine */
+                        void (*free_ptr)(void *buffer)    /* utility routine    */
 );
 
 /* Call-in routine to put a buffer into inflate decompression */
-int InflatePutBuffer(                         /* returns 0 on success       */
-  void *InflateState,                         /* opaque ptr from Initialize */
-  unsigned char *buffer,                      /* buffer to put              */
-  long length                                 /* length of buffer           */
+int InflatePutBuffer(                       /* returns 0 on success       */
+                     void *InflateState,    /* opaque ptr from Initialize */
+                     unsigned char *buffer, /* buffer to put              */
+                     long length            /* length of buffer           */
 );
 
 /* Routine to terminate inflate decompression */
-int InflateTerminate(                         /* returns 0 on success       */
-  void *InflateState                          /* opaque ptr from Initialize */
+int InflateTerminate(                   /* returns 0 on success       */
+                     void *InflateState /* opaque ptr from Initialize */
 );
 
 #ifdef __cplusplus

@@ -25,12 +25,12 @@
 /* Control files by Glenn Chappell Feb 1994 */
 /* Release 2.1 12 Aug 1994 */
 /* Release 2.1.1 25 Aug 1994 */
-/* Release 2.1.2 by Gilbert (Mad Programmer) Healton: Add -A command line 
+/* Release 2.1.2 by Gilbert (Mad Programmer) Healton: Add -A command line
    option.  Sept 8, 1996 */
 /* Release 2.2 by John Cowan: multibyte inputs, compressed fonts,
    mapping tables, kerning/smushing options. */
 /* Release 2.2.1 by Christiaan Keet: minor updates including readmes
-   FAQs and comments. 13 July 2002. The new official FIGlet website is 
+   FAQs and comments. 13 July 2002. The new official FIGlet website is
    http://www.figlet.org/  */
 /* Release 2.2.2 by Christiaan Keet: License changed from "Artistic License"
    to "Academic Free License" as agreed by FIGlet authors. 05 July 2005 */
@@ -41,7 +41,8 @@
 /* FIGlet4Win (FIGlet for modern Windows) */
 /* port by Sichen Lyu */
 /* based on FIGlet 2.2.5 */
-/* Release 1.0.0 Mar 2024: finish of FIGlet Windows porting, first official release of FIGlet4Win */
+/* Release 1.0.0 Mar 2024: finish of FIGlet Windows porting, first official
+ * release of FIGlet4Win */
 
 /*---------------------------------------------------------------------------
   DEFAULTFONTDIR and DEFAULTFONTFILE should be defined in the Makefile.
@@ -59,25 +60,28 @@
 #ifdef __STDC__
 #include <stdlib.h>
 #endif
-#include <string.h>
 #include <ctype.h>
+#include <fcntl.h> /* Needed for get_columns */
+#include <string.h>
 #include <sys/stat.h>
-#include <fcntl.h>     /* Needed for get_columns */
 
 #if defined(unix) || defined(__unix__) || defined(__APPLE__)
-#include <unistd.h>
 #include <sys/ioctl.h> /* Needed for get_columns */
+#include <unistd.h>
+
 #elif defined(_WIN32)
-#include <windows.h>   /* Needed for get_columns (Windows) */
+#include <windows.h> /* Needed for get_columns (Windows) */
 #endif
 
 #ifdef TLF_FONTS
 #include <wchar.h>
 #include <wctype.h>
+
 #include "utf8.h"
+
 #endif
 
-#include "zipio.h"     /* Package for reading compressed files */
+#include "zipio.h" /* Package for reading compressed files */
 
 #define MYSTRLEN(x) ((int)strlen(x)) /* Eliminate ANSI problem */
 
@@ -105,7 +109,8 @@ Note: '/' also used in filename in get_columns(). */
 #endif
 
 #define DATE FIGLET4WINBUILDTIME
-/* move DATE macro definition to here because DATE has been defined as an alias of double under windows */
+/* move DATE macro definition to here because DATE has been defined as an alias
+ * of double under windows */
 #define VERSION FIGLET4WINVERSION
 #define VERSION_INT FIGLET4WINVERSIONINT
 
@@ -113,10 +118,10 @@ Note: '/' also used in filename in get_columns(). */
 #define FONTFILEMAGICNUMBER "flf2"
 #define FSUFFIXLEN MYSTRLEN(FONTFILESUFFIX)
 #define CONTROLFILESUFFIX ".flc"
-#define CONTROLFILEMAGICNUMBER "flc2"   /* no longer used in 2.2 */
+#define CONTROLFILEMAGICNUMBER "flc2" /* no longer used in 2.2 */
 #define CSUFFIXLEN MYSTRLEN(CONTROLFILESUFFIX)
 #define DEFAULTCOLUMNS 80
-#define MAXLEN 255     /* Maximum character width */
+#define MAXLEN 255 /* Maximum character width */
 
 /* Add support for Sam Hocevar's TOIlet fonts */
 #ifdef TLF_FONTS
@@ -124,9 +129,8 @@ Note: '/' also used in filename in get_columns(). */
 #define TOILETFILEMAGICNUMBER "tlf2"
 #define TSUFFIXLEN MYSTRLEN(TOILETFILESUFFIX)
 
-int toiletfont;	/* true if font is a TOIlet TLF font */
+int toiletfont; /* true if font is a TOIlet TLF font */
 #endif
-
 
 /****************************************************************************
 
@@ -136,27 +140,27 @@ int toiletfont;	/* true if font is a TOIlet TLF font */
 
 typedef long inchr; /* "char" read from stdin */
 
-inchr *inchrline;  /* Alloc'd inchr inchrline[inchrlinelenlimit+1]; */
-                   /* Note: not null-terminated. */
-int inchrlinelen,inchrlinelenlimit;
+inchr *inchrline; /* Alloc'd inchr inchrline[inchrlinelenlimit+1]; */
+                  /* Note: not null-terminated. */
+int inchrlinelen, inchrlinelenlimit;
 inchr deutsch[7] = {196, 214, 220, 228, 246, 252, 223};
-  /* Latin-1 codes for German letters, respectively:
-     LATIN CAPITAL LETTER A WITH DIAERESIS = A-umlaut
-     LATIN CAPITAL LETTER O WITH DIAERESIS = O-umlaut
-     LATIN CAPITAL LETTER U WITH DIAERESIS = U-umlaut
-     LATIN SMALL LETTER A WITH DIAERESIS = a-umlaut
-     LATIN SMALL LETTER O WITH DIAERESIS = o-umlaut
-     LATIN SMALL LETTER U WITH DIAERESIS = u-umlaut
-     LATIN SMALL LETTER SHARP S = ess-zed
-  */
+/* Latin-1 codes for German letters, respectively:
+   LATIN CAPITAL LETTER A WITH DIAERESIS = A-umlaut
+   LATIN CAPITAL LETTER O WITH DIAERESIS = O-umlaut
+   LATIN CAPITAL LETTER U WITH DIAERESIS = U-umlaut
+   LATIN SMALL LETTER A WITH DIAERESIS = a-umlaut
+   LATIN SMALL LETTER O WITH DIAERESIS = o-umlaut
+   LATIN SMALL LETTER U WITH DIAERESIS = u-umlaut
+   LATIN SMALL LETTER SHARP S = ess-zed
+*/
 
-int hzmode;  /* true if reading double-bytes in HZ mode */
+int hzmode;   /* true if reading double-bytes in HZ mode */
 int gndbl[4]; /* gndbl[n] is true if Gn is double-byte */
-inchr gn[4]; /* Gn character sets: ASCII, Latin-1, none, none */
-int gl; /* 0-3 specifies left-half Gn character set */
-int gr; /* 0-3 specifies right-half Gn character set */
+inchr gn[4];  /* Gn character sets: ASCII, Latin-1, none, none */
+int gl;       /* 0-3 specifies left-half Gn character set */
+int gr;       /* 0-3 specifies right-half Gn character set */
 
-int Myargc;  /* to avoid passing around argc and argv */
+int Myargc; /* to avoid passing around argc and argv */
 char **Myargv;
 
 /****************************************************************************
@@ -168,30 +172,30 @@ char **Myargv;
 #ifdef TLF_FONTS
 typedef wchar_t outchr; /* "char" written to stdout */
 #define STRLEN(x) wcslen(x)
-#define STRCPY(x,y) wcscpy((x),(y))
-#define STRCAT(x,y) wcscat((x),(y))
+#define STRCPY(x, y) wcscpy((x), (y))
+#define STRCAT(x, y) wcscat((x), (y))
 #define ISSPACE(x) iswspace(x)
 #else
 typedef char outchr; /* "char" written to stdout */
 #define STRLEN(x) MYSTRLEN(x)
-#define STRCPY(x,y) strcpy((x),(y))
-#define STRCAT(x,y) strcat((x),(y))
+#define STRCPY(x, y) strcpy((x), (y))
+#define STRCAT(x, y) strcat((x), (y))
 #define ISSPACE(x) isspace(x)
 #endif
 
 typedef struct fc {
-  inchr ord;
-  outchr **thechar;  /* Alloc'd char thechar[charheight][]; */
-  struct fc *next;
-  } fcharnode;
+    inchr ord;
+    outchr **thechar; /* Alloc'd char thechar[charheight][]; */
+    struct fc *next;
+} fcharnode;
 
 fcharnode *fcharlist;
 outchr **currchar;
 int currcharwidth;
 int previouscharwidth;
-outchr **outputline;   /* Alloc'd char outputline[charheight][outlinelenlimit+1]; */
+outchr *
+    *outputline; /* Alloc'd char outputline[charheight][outlinelenlimit+1]; */
 int outlinelen;
-
 
 /****************************************************************************
 
@@ -200,21 +204,21 @@ int outlinelen;
 ****************************************************************************/
 
 typedef struct cfn {
-  char *thename;
-  struct cfn *next;
-  } cfnamenode;
+    char *thename;
+    struct cfn *next;
+} cfnamenode;
 
-cfnamenode *cfilelist,**cfilelistend;
+cfnamenode *cfilelist, **cfilelistend;
 
 typedef struct cm {
-  int thecommand;
-  inchr rangelo;
-  inchr rangehi;
-  inchr offset;
-  struct cm *next;
-  } comnode;
+    int thecommand;
+    inchr rangelo;
+    inchr rangehi;
+    inchr offset;
+    struct cm *next;
+} comnode;
 
-comnode *commandlist,**commandlistend;
+comnode *commandlist, **commandlistend;
 
 /****************************************************************************
 
@@ -222,7 +226,7 @@ comnode *commandlist,**commandlistend;
 
 ****************************************************************************/
 
-int deutschflag,justification,paragraphflag,right2left,multibyte;
+int deutschflag, justification, paragraphflag, right2left, multibyte;
 int cmdinput;
 
 #define SM_SMUSH 128
@@ -236,16 +240,15 @@ int cmdinput;
 
 int smushmode;
 
-#define SMO_NO 0     /* no command-line smushmode */
-#define SMO_YES 1    /* use command-line smushmode, ignore font smushmode */
-#define SMO_FORCE 2  /* logically OR command-line and font smushmodes */
+#define SMO_NO 0    /* no command-line smushmode */
+#define SMO_YES 1   /* use command-line smushmode, ignore font smushmode */
+#define SMO_FORCE 2 /* logically OR command-line and font smushmodes */
 
 int smushoverride;
 
 int outputwidth;
 int outlinelenlimit;
-char *fontdirname,*fontname;
-
+char *fontdirname, *fontname;
 
 /****************************************************************************
 
@@ -256,7 +259,6 @@ char *fontdirname,*fontname;
 char hardblank;
 int charheight;
 
-
 /****************************************************************************
 
   Name of program, used in error messages
@@ -264,7 +266,6 @@ int charheight;
 ****************************************************************************/
 
 char *myname;
-
 
 #ifdef TIOCGWINSZ
 /****************************************************************************
@@ -278,27 +279,25 @@ char *myname;
 
 ****************************************************************************/
 
-int get_columns()
-{
-  struct winsize ws;
-  int fd,result;
+int get_columns() {
+    struct winsize ws;
+    int fd, result;
 
-  if ((fd = open("/dev/tty",O_WRONLY))<0) return -1;
-  result = ioctl(fd,TIOCGWINSZ,&ws);
-  close(fd);
-  return result?-1:ws.ws_col;
+    if ((fd = open("/dev/tty", O_WRONLY)) < 0) return -1;
+    result = ioctl(fd, TIOCGWINSZ, &ws);
+    close(fd);
+    return result ? -1 : ws.ws_col;
 }
 #elif defined(_WIN32)
-int get_columns()
-{
-  HANDLE hConsole = NULL;
-  if ((hConsole = GetStdHandle(STD_OUTPUT_HANDLE))==INVALID_HANDLE_VALUE) return -1;
-  CONSOLE_SCREEN_BUFFER_INFO csbi;
-  if (GetConsoleScreenBufferInfo(hConsole,&csbi)==0) return -1;
-  return csbi.dwSize.X;
+int get_columns() {
+    HANDLE hConsole = NULL;
+    if ((hConsole = GetStdHandle(STD_OUTPUT_HANDLE)) == INVALID_HANDLE_VALUE)
+        return -1;
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    if (GetConsoleScreenBufferInfo(hConsole, &csbi) == 0) return -1;
+    return csbi.dwSize.X;
 }
 #endif /* ifdef TIOCGWINSZ */
-
 
 /****************************************************************************
 
@@ -315,20 +314,18 @@ char *myalloc(size_t size)
 char *myalloc(int size)
 #endif
 {
-  char *ptr;
+    char *ptr;
 #ifndef __STDC__
-  extern void *malloc();
+    extern void *malloc();
 #endif
 
-  if ((ptr = (char*)malloc(size))==NULL) {
-    fprintf(stderr,"%s: Out of memory\n",myname);
-    exit(1);
-    }
-  else {
-    return ptr;
+    if ((ptr = (char *)malloc(size)) == NULL) {
+        fprintf(stderr, "%s: Out of memory\n", myname);
+        exit(1);
+    } else {
+        return ptr;
     }
 }
-
 
 /****************************************************************************
 
@@ -338,11 +335,13 @@ char *myalloc(int size)
 
 ****************************************************************************/
 
-int hasdirsep(char *s1)
-{
-  if (strchr(s1, DIRSEP)) return 1;
-  else if (strchr(s1, DIRSEP2)) return 1;
-  else return 0;
+int hasdirsep(char *s1) {
+    if (strchr(s1, DIRSEP))
+        return 1;
+    else if (strchr(s1, DIRSEP2))
+        return 1;
+    else
+        return 0;
 }
 
 /****************************************************************************
@@ -353,22 +352,21 @@ int hasdirsep(char *s1)
 
 ****************************************************************************/
 
-int suffixcmp(char *s1, char *s2)
-{
-  int len1, len2;
+int suffixcmp(char *s1, char *s2) {
+    int len1, len2;
 
-  len1 = MYSTRLEN(s1);
-  len2 = MYSTRLEN(s2);
-  if (len2 > len1) return 0;
-  s1 += len1 - len2;
-  while (*s1) {
-    if (tolower(*s1) != tolower(*s2)) return 0;
-    s1++;
-    s2++;
+    len1 = MYSTRLEN(s1);
+    len2 = MYSTRLEN(s2);
+    if (len2 > len1) return 0;
+    s1 += len1 - len2;
+    while (*s1) {
+        if (tolower(*s1) != tolower(*s2)) return 0;
+        s1++;
+        s2++;
     }
-  return 1;
+    return 1;
 }
-   
+
 /****************************************************************************
 
   skiptoeol
@@ -377,20 +375,18 @@ int suffixcmp(char *s1, char *s2)
 
 ****************************************************************************/
 
-void skiptoeol(ZFILE *fp)
-{
-  int dummy;
+void skiptoeol(ZFILE *fp) {
+    int dummy;
 
-  while (dummy=Zgetc(fp),dummy!=EOF) {
-    if (dummy == '\n') return;
-    if (dummy == '\r') {
-      dummy = Zgetc(fp);
-      if (dummy != EOF && dummy != '\n') Zungetc(dummy,fp);
-      return;
-      }
-  }
+    while (dummy = Zgetc(fp), dummy != EOF) {
+        if (dummy == '\n') return;
+        if (dummy == '\r') {
+            dummy = Zgetc(fp);
+            if (dummy != EOF && dummy != '\n') Zungetc(dummy, fp);
+            return;
+        }
+    }
 }
-
 
 /****************************************************************************
 
@@ -400,27 +396,25 @@ void skiptoeol(ZFILE *fp)
 
 ****************************************************************************/
 
-char *myfgets(char *line, int maxlen, ZFILE *fp)
-{
-  int c = 0;
-  char *p;
+char *myfgets(char *line, int maxlen, ZFILE *fp) {
+    int c = 0;
+    char *p;
 
-  p = line;
-  while((c=Zgetc(fp))!=EOF&&maxlen) {
-    *p++ = c;
-    maxlen--;
-    if (c=='\n') break;
-    if (c=='\r') {
-      c = Zgetc(fp);
-      if (c != EOF && c != '\n') Zungetc(c,fp);
-      *(p-1) = '\n';
-      break;
-      }
+    p = line;
+    while ((c = Zgetc(fp)) != EOF && maxlen) {
+        *p++ = c;
+        maxlen--;
+        if (c == '\n') break;
+        if (c == '\r') {
+            c = Zgetc(fp);
+            if (c != EOF && c != '\n') Zungetc(c, fp);
+            *(p - 1) = '\n';
+            break;
+        }
     }
-  *p = 0;
-  return (c==EOF) ? NULL : line;
+    *p = 0;
+    return (c == EOF) ? NULL : line;
 }
-
 
 /****************************************************************************
 
@@ -430,17 +424,15 @@ char *myfgets(char *line, int maxlen, ZFILE *fp)
 
 ****************************************************************************/
 
-void printusage(FILE *out)
-{
-  fprintf(out,
-    "Usage: %s [ -cklnoprstvxDELNRSWX ] [ -d fontdirectory ]\n",
-    myname);
-  fprintf(out,
-    "              [ -f fontfile ] [ -m smushmode ] [ -w outputwidth ]\n");
-  fprintf(out,
-    "              [ -C controlfile ] [ -I infocode ] [ message ]\n");
+void printusage(FILE *out) {
+    fprintf(out, "Usage: %s [ -cklnoprstvxDELNRSWX ] [ -d fontdirectory ]\n",
+            myname);
+    fprintf(
+        out,
+        "              [ -f fontfile ] [ -m smushmode ] [ -w outputwidth ]\n");
+    fprintf(out,
+            "              [ -C controlfile ] [ -I infocode ] [ message ]\n");
 }
-
 
 /****************************************************************************
 
@@ -450,44 +442,43 @@ void printusage(FILE *out)
 
 ****************************************************************************/
 
-void printinfo(int infonum)
-{
-  switch (infonum) {
-    case 0: /* Copyright message */
-      printf("FIGlet Copyright (C) 1991-2012 Glenn Chappell, Ian Chai, ");
-      printf("John Cowan,\nChristiaan Keet and Claudio Matsuoka\n");
-      printf("Website: <info@figlet.org>\n");
-      printf("FIGlet4Win Copyright (C) 2024 Sichen Lyu\n");
-      printf("Version: %s, date: %s\n\n",VERSION,DATE);
-      printf("FIGlet4Win, along with the various FIGlet fonts");
-      printf(" and documentation, may be\n");
-      printf("freely copied and distributed.\n");
-      printf("Contributes, bug reports and feature requests to FIGlet4Win");
-      printf(" are welcome.\n");
-      printf("Repo-site: <https://github.com/Ace-Radom/figlet4win>\n\n");
-      printusage(stdout);
-      break;
-    case 1: /* Version (integer) */
-      printf("%d\n",VERSION_INT);
-      break;
-    case 2: /* Font directory */
-      printf("%s\n",fontdirname);
-      break;
-    case 3: /* Font */
-      printf("%s\n",fontname);
-      break;
-    case 4: /* Outputwidth */
-      printf("%d\n",outputwidth);
-      break;
-    case 5: /* Font formats */
-      printf("%s", FONTFILEMAGICNUMBER);
+void printinfo(int infonum) {
+    switch (infonum) {
+        case 0: /* Copyright message */
+            printf("FIGlet Copyright (C) 1991-2012 Glenn Chappell, Ian Chai, ");
+            printf("John Cowan,\nChristiaan Keet and Claudio Matsuoka\n");
+            printf("Website: <info@figlet.org>\n");
+            printf("FIGlet4Win Copyright (C) 2024 Sichen Lyu\n");
+            printf("Version: %s, date: %s\n\n", VERSION, DATE);
+            printf("FIGlet4Win, along with the various FIGlet fonts");
+            printf(" and documentation, may be\n");
+            printf("freely copied and distributed.\n");
+            printf(
+                "Contributes, bug reports and feature requests to FIGlet4Win");
+            printf(" are welcome.\n");
+            printf("Repo-site: <https://github.com/Ace-Radom/figlet4win>\n\n");
+            printusage(stdout);
+            break;
+        case 1: /* Version (integer) */
+            printf("%d\n", VERSION_INT);
+            break;
+        case 2: /* Font directory */
+            printf("%s\n", fontdirname);
+            break;
+        case 3: /* Font */
+            printf("%s\n", fontname);
+            break;
+        case 4: /* Outputwidth */
+            printf("%d\n", outputwidth);
+            break;
+        case 5: /* Font formats */
+            printf("%s", FONTFILEMAGICNUMBER);
 #ifdef TLF_FONTS
-      printf(" %s", TOILETFILEMAGICNUMBER);
+            printf(" %s", TOILETFILEMAGICNUMBER);
 #endif
-      printf("\n");
+            printf("\n");
     }
 }
-
 
 /****************************************************************************
 
@@ -496,16 +487,15 @@ void printinfo(int infonum)
   Reads a four-character magic string from a stream.
 
 ****************************************************************************/
-void readmagic(ZFILE *fp, char *magic)
-{
-  int i;
+void readmagic(ZFILE *fp, char *magic) {
+    int i;
 
-  for (i=0;i<4;i++) {
-    magic[i] = Zgetc(fp);
+    for (i = 0; i < 4; i++) {
+        magic[i] = Zgetc(fp);
     }
-  magic[4] = 0;
-  }
-  
+    magic[4] = 0;
+}
+
 /****************************************************************************
 
   skipws
@@ -513,12 +503,12 @@ void readmagic(ZFILE *fp, char *magic)
   Skips whitespace characters from a stream.
 
 ****************************************************************************/
-void skipws(ZFILE *fp)
-{
-  int c;
-  while (c=Zgetc(fp),isascii(c)&&isspace(c)) ;
-  Zungetc(c,fp);
-  }
+void skipws(ZFILE *fp) {
+    int c;
+    while (c = Zgetc(fp), isascii(c) && isspace(c))
+        ;
+    Zungetc(c, fp);
+}
 
 /****************************************************************************
 
@@ -528,51 +518,47 @@ void skipws(ZFILE *fp)
   "0x" or "0X" for hexadecimal.  Ignores leading whitespace.
 
 ****************************************************************************/
-void readnum(ZFILE *fp, inchr *nump)
-{
-  int acc = 0;
-  char *p;
-  int c;
-  int base;
-  int sign = 1;
-  char digits[] = "0123456789ABCDEF";
+void readnum(ZFILE *fp, inchr *nump) {
+    int acc = 0;
+    char *p;
+    int c;
+    int base;
+    int sign = 1;
+    char digits[] = "0123456789ABCDEF";
 
-  skipws(fp);
-  c = Zgetc(fp);
-  if (c=='-') {
-    sign = -1;
+    skipws(fp);
+    c = Zgetc(fp);
+    if (c == '-') {
+        sign = -1;
+    } else {
+        Zungetc(c, fp);
     }
-  else {
-    Zungetc(c,fp);
-    }
-  c = Zgetc(fp);
-  if (c=='0') {
-     c = Zgetc(fp);
-     if (c=='x'||c=='X') {
-       base = 16;
-       }
-     else {
-       base = 8;
-       Zungetc(c,fp);
-       }
-    }
-  else {
-    base = 10;
-    Zungetc(c,fp);
+    c = Zgetc(fp);
+    if (c == '0') {
+        c = Zgetc(fp);
+        if (c == 'x' || c == 'X') {
+            base = 16;
+        } else {
+            base = 8;
+            Zungetc(c, fp);
+        }
+    } else {
+        base = 10;
+        Zungetc(c, fp);
     }
 
-  while((c=Zgetc(fp))!=EOF) {
-    c=toupper(c);
-    p=strchr(digits,c);
-    if (!p) {
-      Zungetc(c,fp);
-      *nump = acc * sign;
-      return;
-      }
-    acc = acc*base+(p-digits);
+    while ((c = Zgetc(fp)) != EOF) {
+        c = toupper(c);
+        p = strchr(digits, c);
+        if (!p) {
+            Zungetc(c, fp);
+            *nump = acc * sign;
+            return;
+        }
+        acc = acc * base + (p - digits);
     }
-  *nump = acc * sign;
-  }  
+    *nump = acc * sign;
+}
 
 /****************************************************************************
 
@@ -585,42 +571,41 @@ void readnum(ZFILE *fp, inchr *nump)
 
 ****************************************************************************/
 
-inchr readTchar(ZFILE *fp)
-{
-  inchr thechar;
-  char next;
+inchr readTchar(ZFILE *fp) {
+    inchr thechar;
+    char next;
 
-  thechar=Zgetc(fp);
-  if (thechar=='\n' || thechar=='\r') { /* Handle badly-formatted file */
-    Zungetc(thechar,fp);
-    return '\0';
+    thechar = Zgetc(fp);
+    if (thechar == '\n' || thechar == '\r') { /* Handle badly-formatted file */
+        Zungetc(thechar, fp);
+        return '\0';
     }
-  if (thechar!='\\') return thechar;
-  next=Zgetc(fp);
-  switch(next) {
-    case 'a':
-      return 7;
-    case 'b':
-      return 8;
-    case 'e':
-      return 27;
-    case 'f':
-      return 12;
-    case 'n':
-      return 10;
-    case 'r':
-      return 13;
-    case 't':
-      return 9;
-    case 'v':
-      return 11;
-    default:
-      if (next=='-' || next=='x' || (next>='0' && next<='9')) {
-        Zungetc(next,fp);
-        readnum(fp,&thechar);
-        return thechar;
-        }
-      return next;
+    if (thechar != '\\') return thechar;
+    next = Zgetc(fp);
+    switch (next) {
+        case 'a':
+            return 7;
+        case 'b':
+            return 8;
+        case 'e':
+            return 27;
+        case 'f':
+            return 12;
+        case 'n':
+            return 10;
+        case 'r':
+            return 13;
+        case 't':
+            return 9;
+        case 'v':
+            return 11;
+        default:
+            if (next == '-' || next == 'x' || (next >= '0' && next <= '9')) {
+                Zungetc(next, fp);
+                readnum(fp, &thechar);
+                return thechar;
+            }
+            return next;
     }
 }
 
@@ -633,17 +618,16 @@ inchr readTchar(ZFILE *fp)
 
 ****************************************************************************/
 
-inchr charsetname(ZFILE *fp)
-{
-  inchr result;
+inchr charsetname(ZFILE *fp) {
+    inchr result;
 
-  result = readTchar(fp);
-  if (result == '\n' || result == '\r') {
-    result = 0;
-    Zungetc(result,fp);
+    result = readTchar(fp);
+    if (result == '\n' || result == '\r') {
+        result = 0;
+        Zungetc(result, fp);
     }
-  return result;
-  }
+    return result;
+}
 
 /****************************************************************************
 
@@ -654,48 +638,47 @@ inchr charsetname(ZFILE *fp)
 
 ****************************************************************************/
 
-void charset(int n, ZFILE *controlfile)
-{
-  int ch;
+void charset(int n, ZFILE *controlfile) {
+    int ch;
 
-  skipws(controlfile);
-  if (Zgetc(controlfile) != '9') {
-    skiptoeol(controlfile);
-    return;
+    skipws(controlfile);
+    if (Zgetc(controlfile) != '9') {
+        skiptoeol(controlfile);
+        return;
     }
-  ch = Zgetc(controlfile);
-  if (ch == '6') {
-     gn[n] = 65536L * charsetname(controlfile) + 0x80;
-     gndbl[n] = 0;
-     skiptoeol(controlfile);
-     return;
-     }
-  if (ch != '4') {
-    skiptoeol(controlfile);
-    return;
+    ch = Zgetc(controlfile);
+    if (ch == '6') {
+        gn[n] = 65536L * charsetname(controlfile) + 0x80;
+        gndbl[n] = 0;
+        skiptoeol(controlfile);
+        return;
     }
-  ch = Zgetc(controlfile);
-  if (ch == 'x') {
-     if (Zgetc(controlfile) != '9') {
-       skiptoeol(controlfile);
-       return;
-       }
-     if (Zgetc(controlfile) != '4') {
-       skiptoeol(controlfile);
-       return;
-       }
-     skipws(controlfile);
-     gn[n] = 65536L * charsetname(controlfile);
-     gndbl[n] = 1;
-     skiptoeol(controlfile);
-     return;
-     }
-  Zungetc(ch, controlfile);
-  skipws(controlfile);
-  gn[n] = 65536L * charsetname(controlfile);
-  gndbl[n] = 0;
-  return;
-  }
+    if (ch != '4') {
+        skiptoeol(controlfile);
+        return;
+    }
+    ch = Zgetc(controlfile);
+    if (ch == 'x') {
+        if (Zgetc(controlfile) != '9') {
+            skiptoeol(controlfile);
+            return;
+        }
+        if (Zgetc(controlfile) != '4') {
+            skiptoeol(controlfile);
+            return;
+        }
+        skipws(controlfile);
+        gn[n] = 65536L * charsetname(controlfile);
+        gndbl[n] = 1;
+        skiptoeol(controlfile);
+        return;
+    }
+    Zungetc(ch, controlfile);
+    skipws(controlfile);
+    gn[n] = 65536L * charsetname(controlfile);
+    gndbl[n] = 0;
+    return;
+}
 
 /****************************************************************************
 
@@ -706,35 +689,34 @@ void charset(int n, ZFILE *controlfile)
 
 ****************************************************************************/
 
-ZFILE *FIGopen(char *name, char *suffix)
-{
-  char *fontpath;
-  ZFILE *fontfile;
-  struct stat st;
-  int namelen;
+ZFILE *FIGopen(char *name, char *suffix) {
+    char *fontpath;
+    ZFILE *fontfile;
+    struct stat st;
+    int namelen;
 
-  namelen = MYSTRLEN(fontdirname);
-  fontpath = (char*)alloca(sizeof(char)*
-    (namelen+MYSTRLEN(name)+MYSTRLEN(suffix)+2));
-  fontfile = NULL;
-  if (!hasdirsep(name)) {  /* not a full path name */
-    strcpy(fontpath,fontdirname);
-    fontpath[namelen] = DIRSEP;
-    fontpath[namelen+1] = '\0';
-    strcat(fontpath,name);
-    strcat(fontpath,suffix);
-    if(stat(fontpath,&st)==0) goto ok;
+    namelen = MYSTRLEN(fontdirname);
+    fontpath = (char *)alloca(
+        sizeof(char) * (namelen + MYSTRLEN(name) + MYSTRLEN(suffix) + 2));
+    fontfile = NULL;
+    if (!hasdirsep(name)) { /* not a full path name */
+        strcpy(fontpath, fontdirname);
+        fontpath[namelen] = DIRSEP;
+        fontpath[namelen + 1] = '\0';
+        strcat(fontpath, name);
+        strcat(fontpath, suffix);
+        if (stat(fontpath, &st) == 0) goto ok;
     }
-  /* just append suffix */
-  strcpy(fontpath,name);
-  strcat(fontpath,suffix);
-  if(stat(fontpath,&st)==0) goto ok;
+    /* just append suffix */
+    strcpy(fontpath, name);
+    strcat(fontpath, suffix);
+    if (stat(fontpath, &st) == 0) goto ok;
 
-  return NULL;
+    return NULL;
 
 ok:
-  fontfile = Zopen(fontpath,"rb");
-  return fontfile;
+    fontfile = Zopen(fontpath, "rb");
+    return fontfile;
 }
 
 /****************************************************************************
@@ -746,127 +728,135 @@ ok:
 
 ****************************************************************************/
 
-void readcontrol(char *controlname)
-{
-  inchr firstch,lastch;
-  char dashcheck;
-  inchr offset;
-  int command;
-  ZFILE *controlfile;
+void readcontrol(char *controlname) {
+    inchr firstch, lastch;
+    char dashcheck;
+    inchr offset;
+    int command;
+    ZFILE *controlfile;
 
-  controlfile = FIGopen(controlname,CONTROLFILESUFFIX);
+    controlfile = FIGopen(controlname, CONTROLFILESUFFIX);
 
-  if (controlfile==NULL) {
-    fprintf(stderr,"%s: %s: Unable to open control file\n",myname,
-      controlname);
-    exit(1);
+    if (controlfile == NULL) {
+        fprintf(stderr, "%s: %s: Unable to open control file\n", myname,
+                controlname);
+        exit(1);
     }
 
-  (*commandlistend) = (comnode*)myalloc(sizeof(comnode));
-  (*commandlistend)->thecommand = 0; /* Begin with a freeze command */
-  commandlistend = &(*commandlistend)->next;
-  (*commandlistend) = NULL;
+    (*commandlistend) = (comnode *)myalloc(sizeof(comnode));
+    (*commandlistend)->thecommand = 0; /* Begin with a freeze command */
+    commandlistend = &(*commandlistend)->next;
+    (*commandlistend) = NULL;
 
-  while(command=Zgetc(controlfile),command!=EOF) {
-    switch (command) {
-      case 't': /* Translate */
-        skipws(controlfile);
-        firstch=readTchar(controlfile);
-        if ((dashcheck=Zgetc(controlfile))=='-') {
-          lastch=readTchar(controlfile);
-          }
-        else {
-          Zungetc(dashcheck,controlfile);
-          lastch=firstch;
-          }
-        skipws(controlfile);
-        offset=readTchar(controlfile)-firstch;
-        skiptoeol(controlfile);
-        (*commandlistend) = (comnode*)myalloc(sizeof(comnode));
-        (*commandlistend)->thecommand = 1;
-        (*commandlistend)->rangelo = firstch;
-        (*commandlistend)->rangehi = lastch;
-        (*commandlistend)->offset = offset;
-        commandlistend = &(*commandlistend)->next;
-        (*commandlistend) = NULL;
-        break;
-      case '0': case '1': case '2': case '3': case '4':
-      case '5': case '6': case '7': case '8': case '9':
-      case '-':
-                /* Mapping table entry */
-        Zungetc(command,controlfile);
-        readnum(controlfile,&firstch);
-        skipws(controlfile);
-	readnum(controlfile,&lastch);
-	offset=lastch-firstch;
-        lastch=firstch;
-        skiptoeol(controlfile);
-        (*commandlistend) = (comnode*)myalloc(sizeof(comnode));
-        (*commandlistend)->thecommand = 1;
-        (*commandlistend)->rangelo = firstch;
-        (*commandlistend)->rangehi = lastch;
-        (*commandlistend)->offset = offset;
-        commandlistend = &(*commandlistend)->next;
-        (*commandlistend) = NULL;
-        break;
-      case 'f': /* freeze */
-        skiptoeol(controlfile);
-        (*commandlistend) = (comnode*)myalloc(sizeof(comnode));
-        (*commandlistend)->thecommand = 0;
-        commandlistend = &(*commandlistend)->next;
-        (*commandlistend) = NULL;
-        break;
-      case 'b': /* DBCS input mode */
-        multibyte = 1;
-        break;
-      case 'u': /* UTF-8 input mode */
-        multibyte = 2;
-        break;
-      case 'h': /* HZ input mode */
-        multibyte = 3;
-        break;
-      case 'j': /* Shift-JIS input mode */
-        multibyte = 4;
-        break;
-      case 'g': /* ISO 2022 character set choices */
-        multibyte = 0;
-        skipws(controlfile);
-        command=Zgetc(controlfile);
+    while (command = Zgetc(controlfile), command != EOF) {
         switch (command) {
-          case '0': /* define G0 charset */
-            charset(0, controlfile);
-            break;
-          case '1': /* set G1 charset */
-            charset(1, controlfile);
-            break;
-          case '2': /* set G2 charset */
-            charset(2, controlfile);
-            break;
-          case '3': /* set G3 charset */
-            charset(3, controlfile);
-            break;
-          case 'l': case 'L': /* define left half */
-            skipws(controlfile);
-            gl = Zgetc(controlfile) - '0';
-            skiptoeol(controlfile);
-            break;
-          case 'r': case 'R': /* define right half */
-            skipws(controlfile);
-            gr = Zgetc(controlfile) - '0';
-            skiptoeol(controlfile);
-            break;
-          default: /* meaningless "g" command */
-            skiptoeol(controlfile);
-          }
-      case '\r': case '\n': /* blank line */
-        break;
-      default: /* Includes '#' */
-        skiptoeol(controlfile);
-      }
+            case 't': /* Translate */
+                skipws(controlfile);
+                firstch = readTchar(controlfile);
+                if ((dashcheck = Zgetc(controlfile)) == '-') {
+                    lastch = readTchar(controlfile);
+                } else {
+                    Zungetc(dashcheck, controlfile);
+                    lastch = firstch;
+                }
+                skipws(controlfile);
+                offset = readTchar(controlfile) - firstch;
+                skiptoeol(controlfile);
+                (*commandlistend) = (comnode *)myalloc(sizeof(comnode));
+                (*commandlistend)->thecommand = 1;
+                (*commandlistend)->rangelo = firstch;
+                (*commandlistend)->rangehi = lastch;
+                (*commandlistend)->offset = offset;
+                commandlistend = &(*commandlistend)->next;
+                (*commandlistend) = NULL;
+                break;
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+            case '8':
+            case '9':
+            case '-':
+                /* Mapping table entry */
+                Zungetc(command, controlfile);
+                readnum(controlfile, &firstch);
+                skipws(controlfile);
+                readnum(controlfile, &lastch);
+                offset = lastch - firstch;
+                lastch = firstch;
+                skiptoeol(controlfile);
+                (*commandlistend) = (comnode *)myalloc(sizeof(comnode));
+                (*commandlistend)->thecommand = 1;
+                (*commandlistend)->rangelo = firstch;
+                (*commandlistend)->rangehi = lastch;
+                (*commandlistend)->offset = offset;
+                commandlistend = &(*commandlistend)->next;
+                (*commandlistend) = NULL;
+                break;
+            case 'f': /* freeze */
+                skiptoeol(controlfile);
+                (*commandlistend) = (comnode *)myalloc(sizeof(comnode));
+                (*commandlistend)->thecommand = 0;
+                commandlistend = &(*commandlistend)->next;
+                (*commandlistend) = NULL;
+                break;
+            case 'b': /* DBCS input mode */
+                multibyte = 1;
+                break;
+            case 'u': /* UTF-8 input mode */
+                multibyte = 2;
+                break;
+            case 'h': /* HZ input mode */
+                multibyte = 3;
+                break;
+            case 'j': /* Shift-JIS input mode */
+                multibyte = 4;
+                break;
+            case 'g': /* ISO 2022 character set choices */
+                multibyte = 0;
+                skipws(controlfile);
+                command = Zgetc(controlfile);
+                switch (command) {
+                    case '0': /* define G0 charset */
+                        charset(0, controlfile);
+                        break;
+                    case '1': /* set G1 charset */
+                        charset(1, controlfile);
+                        break;
+                    case '2': /* set G2 charset */
+                        charset(2, controlfile);
+                        break;
+                    case '3': /* set G3 charset */
+                        charset(3, controlfile);
+                        break;
+                    case 'l':
+                    case 'L': /* define left half */
+                        skipws(controlfile);
+                        gl = Zgetc(controlfile) - '0';
+                        skiptoeol(controlfile);
+                        break;
+                    case 'r':
+                    case 'R': /* define right half */
+                        skipws(controlfile);
+                        gr = Zgetc(controlfile) - '0';
+                        skiptoeol(controlfile);
+                        break;
+                    default: /* meaningless "g" command */
+                        skiptoeol(controlfile);
+                }
+            case '\r':
+            case '\n': /* blank line */
+                break;
+            default: /* Includes '#' */
+                skiptoeol(controlfile);
+        }
     }
-  Zclose(controlfile);
+    Zclose(controlfile);
 }
-
 
 /****************************************************************************
 
@@ -877,15 +867,13 @@ void readcontrol(char *controlname)
 
 ****************************************************************************/
 
-void readcontrolfiles()
-{
-  cfnamenode *cfnptr;
+void readcontrolfiles() {
+    cfnamenode *cfnptr;
 
-  for (cfnptr=cfilelist;cfnptr!=NULL;cfnptr=cfnptr->next) {
-    readcontrol(cfnptr->thename);
+    for (cfnptr = cfilelist; cfnptr != NULL; cfnptr = cfnptr->next) {
+        readcontrol(cfnptr->thename);
     }
 }
-
 
 /****************************************************************************
 
@@ -895,20 +883,18 @@ void readcontrolfiles()
 
 ****************************************************************************/
 
-void clearcfilelist()
-{
-  cfnamenode *cfnptr1,*cfnptr2;
+void clearcfilelist() {
+    cfnamenode *cfnptr1, *cfnptr2;
 
-  cfnptr1 = cfilelist;
-  while (cfnptr1 != NULL) {
-    cfnptr2 = cfnptr1->next;
-    free(cfnptr1);
-    cfnptr1 = cfnptr2;
+    cfnptr1 = cfilelist;
+    while (cfnptr1 != NULL) {
+        cfnptr2 = cfnptr1->next;
+        free(cfnptr1);
+        cfnptr1 = cfnptr2;
     }
-  cfilelist = NULL;
-  cfilelistend = &cfilelist;
+    cfilelist = NULL;
+    cfilelistend = &cfilelist;
 }
-
 
 /****************************************************************************
 
@@ -919,252 +905,256 @@ void clearcfilelist()
 
 ****************************************************************************/
 
-void getparams()
-{
-  extern char *optarg;
-  extern int optind;
-  int c; /* "Should" be a char -- need int for "!= -1" test*/
-  int columns,infoprint;
-  char *controlname,*env;
+void getparams() {
+    extern char *optarg;
+    extern int optind;
+    int c; /* "Should" be a char -- need int for "!= -1" test*/
+    int columns, infoprint;
+    char *controlname, *env;
 
-  if ((myname = strrchr(Myargv[0],DIRSEP))!=NULL) {
-    myname++;
+    if ((myname = strrchr(Myargv[0], DIRSEP)) != NULL) {
+        myname++;
+    } else {
+        myname = Myargv[0];
     }
-  else {
-    myname = Myargv[0];
-    }
-  fontdirname = (char*)myalloc(MAXPATHLEN);
-  strcpy(fontdirname,DEFAULTFONTDIR);
-  env = getenv("FIGLET_FONTDIR");
-  if (env!=NULL) {
-    strcpy(fontdirname,env);
+    fontdirname = (char *)myalloc(MAXPATHLEN);
+    strcpy(fontdirname, DEFAULTFONTDIR);
+    env = getenv("FIGLET_FONTDIR");
+    if (env != NULL) {
+        strcpy(fontdirname, env);
     }
 #if defined(_WIN32)
-  if (fontdirname[1]!=':' || (fontdirname[2]!=DIRSEP2 || fontdirname[2]!=DIRSEP)){
+    if (fontdirname[1] != ':' ||
+        (fontdirname[2] != DIRSEP2 || fontdirname[2] != DIRSEP)) {
 #if !defined(UNICODE) && !defined(_UNICODE)
-    char buf[MAXPATHLEN];
-    if (!GetModuleFileName(NULL,buf,MAXPATHLEN))
-    {
-      fprintf(stderr,"Fatal: failed to get FIGlet exe path\n");
-      exit(1);
-      }
+        char buf[MAXPATHLEN];
+        if (!GetModuleFileName(NULL, buf, MAXPATHLEN)) {
+            fprintf(stderr, "Fatal: failed to get FIGlet exe path\n");
+            exit(1);
+        }
 #else
-    TCHAR wbuf[MAXPATHLEN];
-    if (!GetModuleFileName(NULL,wbuf,MAXPATHLEN))
-    {
-      fprintf(stderr,"Fatal: failed to get FIGlet exe path\n");
-      exit(1);
-      }
-    char buf[MAXPATHLEN];
-    int convreqsize = WideCharToMultiByte(CP_ACP,0,wbuf,-1,NULL,0,NULL,NULL);
-    WideCharToMultiByte(CP_ACP,0,wbuf,-1,buf,convreqsize,NULL,NULL);
+        TCHAR wbuf[MAXPATHLEN];
+        if (!GetModuleFileName(NULL, wbuf, MAXPATHLEN)) {
+            fprintf(stderr, "Fatal: failed to get FIGlet exe path\n");
+            exit(1);
+        }
+        char buf[MAXPATHLEN];
+        int convreqsize =
+            WideCharToMultiByte(CP_ACP, 0, wbuf, -1, NULL, 0, NULL, NULL);
+        WideCharToMultiByte(CP_ACP, 0, wbuf, -1, buf, convreqsize, NULL, NULL);
 #endif
-    char* lastdirseppos;
-    if ((lastdirseppos=strrchr(buf,DIRSEP2))!=NULL) {
-      *lastdirseppos = '\0';
-      strcat(buf,DIRSEPSTR2);
-      strcat(buf,fontdirname);
-      strcpy(fontdirname,buf);
-      }
+        char *lastdirseppos;
+        if ((lastdirseppos = strrchr(buf, DIRSEP2)) != NULL) {
+            *lastdirseppos = '\0';
+            strcat(buf, DIRSEPSTR2);
+            strcat(buf, fontdirname);
+            strcpy(fontdirname, buf);
+        }
     }
 #elif defined(__linux__)
-  if (fontdirname[0]!='/') {
-    char buf[MAXPATHLEN];
-    if(readlink("/proc/self/exe",buf,sizeof(buf))==-1) {
-      fprintf(stderr,"Fatal: failed to get FIGlet exe path\n");
-      exit(1);
-      }
-    char* lastdirseppos;
-    if ((lastdirseppos=strrchr(buf,DIRSEP))!=NULL) {
-      *lastdirseppos = '\0';
-      strcat(buf,DIRSEPSTR);
-      strcat(buf,fontdirname);
-      strcpy(fontdirname,buf);
-      }
+    if (fontdirname[0] != '/') {
+        char buf[MAXPATHLEN];
+        if (readlink("/proc/self/exe", buf, sizeof(buf)) == -1) {
+            fprintf(stderr, "Fatal: failed to get FIGlet exe path\n");
+            exit(1);
+        }
+        char *lastdirseppos;
+        if ((lastdirseppos = strrchr(buf, DIRSEP)) != NULL) {
+            *lastdirseppos = '\0';
+            strcat(buf, DIRSEPSTR);
+            strcat(buf, fontdirname);
+            strcpy(fontdirname, buf);
+        }
     }
 #elif defined(__APPLE__)
-  if (fontdirname[0]!='/') {
-    char buf[MAXPATHLEN];
-    unsigned int bufsize = sizeof(buf);
-    _NSGetExecutablePath(buf,&bufsize);
-    char* lastdirseppos;
-    if ((lastdirseppos=strrchr(buf,DIRSEP))!=NULL) {
-      *lastdirseppos = '\0';
-      strcat(buf,DIRSEPSTR);
-      strcat(buf,fontdirname);
-      strcpy(fontdirname,buf);
-      }
+    if (fontdirname[0] != '/') {
+        char buf[MAXPATHLEN];
+        unsigned int bufsize = sizeof(buf);
+        _NSGetExecutablePath(buf, &bufsize);
+        char *lastdirseppos;
+        if ((lastdirseppos = strrchr(buf, DIRSEP)) != NULL) {
+            *lastdirseppos = '\0';
+            strcat(buf, DIRSEPSTR);
+            strcat(buf, fontdirname);
+            strcpy(fontdirname, buf);
+        }
     }
 #endif
-  fontname = DEFAULTFONTFILE;
-  cfilelist = NULL;
-  cfilelistend = &cfilelist;
-  commandlist = NULL;
-  commandlistend = &commandlist;
-  smushoverride = SMO_NO;
-  deutschflag = 0;
-  justification = -1;
-  right2left = -1;
-  paragraphflag = 0;
-  infoprint = -1;
-  cmdinput = 0;
-  outputwidth = DEFAULTCOLUMNS;
-  gn[1] = 0x80;
-  gr = 1;
-  while ((c = getopt(Myargc,Myargv,"ADEXLRI:xlcrpntvm:w:d:f:C:NFskSWo"))!= -1) {
-      /* Note: -F is not a legal option -- prints a special err message.  */
-    switch (c) {
-      case 'A':
-        cmdinput = 1;
-        break;
-      case 'D':
-        deutschflag = 1;
-        break;
-      case 'E':
-        deutschflag = 0;
-        break;
-      case 'X':
-        right2left = -1;
-        break;
-      case 'L':
-        right2left = 0;
-        break;
-      case 'R':
-        right2left = 1;
-        break;
-      case 'x':
-        justification = -1;
-        break;
-      case 'l':
-        justification = 0;
-        break;
-      case 'c':
-        justification = 1;
-        break;
-      case 'r':
-        justification = 2;
-        break;
-      case 'p':
-        paragraphflag = 1;
-        break;
-      case 'n':
-        paragraphflag = 0;
-        break;
-      case 's':
-        smushoverride = SMO_NO;
-        break;
-      case 'k':
-        smushmode = SM_KERN;
-        smushoverride = SMO_YES;
-        break;
-      case 'S':
-        smushmode = SM_SMUSH;
-	smushoverride = SMO_FORCE;
-        break;
-      case 'o':
-        smushmode = SM_SMUSH;
-	smushoverride = SMO_YES;
-        break;
-      case 'W':
-        smushmode = 0;
-	smushoverride = SMO_YES;
-        break;
-      case 't':
+    fontname = DEFAULTFONTFILE;
+    cfilelist = NULL;
+    cfilelistend = &cfilelist;
+    commandlist = NULL;
+    commandlistend = &commandlist;
+    smushoverride = SMO_NO;
+    deutschflag = 0;
+    justification = -1;
+    right2left = -1;
+    paragraphflag = 0;
+    infoprint = -1;
+    cmdinput = 0;
+    outputwidth = DEFAULTCOLUMNS;
+    gn[1] = 0x80;
+    gr = 1;
+    while ((c = getopt(Myargc, Myargv, "ADEXLRI:xlcrpntvm:w:d:f:C:NFskSWo")) !=
+           -1) {
+        /* Note: -F is not a legal option -- prints a special err message.  */
+        switch (c) {
+            case 'A':
+                cmdinput = 1;
+                break;
+            case 'D':
+                deutschflag = 1;
+                break;
+            case 'E':
+                deutschflag = 0;
+                break;
+            case 'X':
+                right2left = -1;
+                break;
+            case 'L':
+                right2left = 0;
+                break;
+            case 'R':
+                right2left = 1;
+                break;
+            case 'x':
+                justification = -1;
+                break;
+            case 'l':
+                justification = 0;
+                break;
+            case 'c':
+                justification = 1;
+                break;
+            case 'r':
+                justification = 2;
+                break;
+            case 'p':
+                paragraphflag = 1;
+                break;
+            case 'n':
+                paragraphflag = 0;
+                break;
+            case 's':
+                smushoverride = SMO_NO;
+                break;
+            case 'k':
+                smushmode = SM_KERN;
+                smushoverride = SMO_YES;
+                break;
+            case 'S':
+                smushmode = SM_SMUSH;
+                smushoverride = SMO_FORCE;
+                break;
+            case 'o':
+                smushmode = SM_SMUSH;
+                smushoverride = SMO_YES;
+                break;
+            case 'W':
+                smushmode = 0;
+                smushoverride = SMO_YES;
+                break;
+            case 't':
 #if defined(TIOCGWINSZ) || defined(_WIN32)
-        columns = get_columns();
-        if (columns>0) {
-          outputwidth = columns;
-          }
-#else /* ifdef TIOCGWINSZ */
-        fprintf(stderr,
-          "%s: \"-t\" is disabled, since ioctl is not fully implemented.\n",
-          myname);
+                columns = get_columns();
+                if (columns > 0) {
+                    outputwidth = columns;
+                }
+#else  /* ifdef TIOCGWINSZ */
+                fprintf(stderr,
+                        "%s: \"-t\" is disabled, since ioctl is not fully "
+                        "implemented.\n",
+                        myname);
 #endif /* ifdef TIOCGWINSZ */
-        break;
-      case 'v':
-        infoprint = 0;
-        break;
-      case 'I':
-        infoprint = atoi(optarg);
-        break;
-      case 'm':
-        smushmode = atoi(optarg);
-        if (smushmode < -1) {
-          smushoverride = SMO_NO;
-          break;
-          }
-	if (smushmode == 0) smushmode = SM_KERN;
-	else if (smushmode == -1) smushmode = 0;
-	else smushmode = (smushmode & 63) | SM_SMUSH;
-	smushoverride = SMO_YES;
-        break;
-      case 'w':
-        columns = atoi(optarg);
-        if (columns>0) {
-          outputwidth = columns;
-          }
-        break;
-      case 'd':
-        free(fontdirname);
-        fontdirname = optarg;
-        break;
-      case 'f':
-        fontname = optarg;
-        if (suffixcmp(fontname,FONTFILESUFFIX)) {
-          fontname[MYSTRLEN(fontname)-FSUFFIXLEN] = '\0';
-          }
+                break;
+            case 'v':
+                infoprint = 0;
+                break;
+            case 'I':
+                infoprint = atoi(optarg);
+                break;
+            case 'm':
+                smushmode = atoi(optarg);
+                if (smushmode < -1) {
+                    smushoverride = SMO_NO;
+                    break;
+                }
+                if (smushmode == 0)
+                    smushmode = SM_KERN;
+                else if (smushmode == -1)
+                    smushmode = 0;
+                else
+                    smushmode = (smushmode & 63) | SM_SMUSH;
+                smushoverride = SMO_YES;
+                break;
+            case 'w':
+                columns = atoi(optarg);
+                if (columns > 0) {
+                    outputwidth = columns;
+                }
+                break;
+            case 'd':
+                free(fontdirname);
+                fontdirname = optarg;
+                break;
+            case 'f':
+                fontname = optarg;
+                if (suffixcmp(fontname, FONTFILESUFFIX)) {
+                    fontname[MYSTRLEN(fontname) - FSUFFIXLEN] = '\0';
+                }
 #ifdef TLF_FONTS
-        else if (suffixcmp(fontname,TOILETFILESUFFIX)) {
-          fontname[MYSTRLEN(fontname)-TSUFFIXLEN] = '\0';
-          }
+                else if (suffixcmp(fontname, TOILETFILESUFFIX)) {
+                    fontname[MYSTRLEN(fontname) - TSUFFIXLEN] = '\0';
+                }
 #endif
-        break;
-      case 'C':
-        controlname = optarg;
-        if (suffixcmp(controlname, CONTROLFILESUFFIX)) {
-          controlname[MYSTRLEN(controlname)-CSUFFIXLEN] = '\0';
-          }
-        (*cfilelistend) = (cfnamenode*)myalloc(sizeof(cfnamenode));
-        (*cfilelistend)->thename = controlname;
-        cfilelistend = &(*cfilelistend)->next;
-        (*cfilelistend) = NULL;
-        break;
-      case 'N':
-        clearcfilelist();
-        multibyte = 0;
-        gn[0] = 0;
-        gn[1] = 0x80;
-        gn[2] = gn[3] = 0;
-        gndbl[0] = gndbl[1] = gndbl[2] = gndbl[3] = 0;
-        gl = 0;
-        gr = 1;
-        break;
-      case 'F': /* Not a legal option */
-        fprintf(stderr,"%s: illegal option -- F\n",myname);
-        printusage(stderr);
-        fprintf(stderr,"\nBecause of numerous incompatibilities, the");
-        fprintf(stderr," \"-F\" option has been\n");
-        fprintf(stderr,"removed.  It has been replaced by the \"figlist\"");
-        fprintf(stderr," program, which is now\n");
-        fprintf(stderr,"included in the basic FIGlet package.  \"figlist\"");
-        fprintf(stderr," is also available\n");
-        fprintf(stderr,"from  http://www.figlet.org/");
-        fprintf(stderr,"under UNIX utilities.\n");
-        exit(1);
-        break;
-      default:
-        printusage(stderr);
-        exit(1);
-      }
+                break;
+            case 'C':
+                controlname = optarg;
+                if (suffixcmp(controlname, CONTROLFILESUFFIX)) {
+                    controlname[MYSTRLEN(controlname) - CSUFFIXLEN] = '\0';
+                }
+                (*cfilelistend) = (cfnamenode *)myalloc(sizeof(cfnamenode));
+                (*cfilelistend)->thename = controlname;
+                cfilelistend = &(*cfilelistend)->next;
+                (*cfilelistend) = NULL;
+                break;
+            case 'N':
+                clearcfilelist();
+                multibyte = 0;
+                gn[0] = 0;
+                gn[1] = 0x80;
+                gn[2] = gn[3] = 0;
+                gndbl[0] = gndbl[1] = gndbl[2] = gndbl[3] = 0;
+                gl = 0;
+                gr = 1;
+                break;
+            case 'F': /* Not a legal option */
+                fprintf(stderr, "%s: illegal option -- F\n", myname);
+                printusage(stderr);
+                fprintf(stderr, "\nBecause of numerous incompatibilities, the");
+                fprintf(stderr, " \"-F\" option has been\n");
+                fprintf(stderr,
+                        "removed.  It has been replaced by the \"figlist\"");
+                fprintf(stderr, " program, which is now\n");
+                fprintf(stderr,
+                        "included in the basic FIGlet package.  \"figlist\"");
+                fprintf(stderr, " is also available\n");
+                fprintf(stderr, "from  http://www.figlet.org/");
+                fprintf(stderr, "under UNIX utilities.\n");
+                exit(1);
+                break;
+            default:
+                printusage(stderr);
+                exit(1);
+        }
     }
-  if (optind!=Myargc) cmdinput = 1; /* force cmdinput if more arguments */
-  outlinelenlimit = outputwidth-1;
-  if (infoprint>=0) {
-    printinfo(infoprint);
-    exit(0);
+    if (optind != Myargc) cmdinput = 1; /* force cmdinput if more arguments */
+    outlinelenlimit = outputwidth - 1;
+    if (infoprint >= 0) {
+        printinfo(infoprint);
+        exit(0);
     }
 }
-
 
 /****************************************************************************
 
@@ -1174,17 +1164,15 @@ void getparams()
 
 ****************************************************************************/
 
-void clearline()
-{
-  int i;
+void clearline() {
+    int i;
 
-  for (i=0;i<charheight;i++) {
-    outputline[i][0] = '\0';
+    for (i = 0; i < charheight; i++) {
+        outputline[i][0] = '\0';
     }
-  outlinelen = 0;
-  inchrlinelen = 0;
+    outlinelen = 0;
+    inchrlinelen = 0;
 }
-
 
 /****************************************************************************
 
@@ -1195,46 +1183,45 @@ void clearline()
 
 ****************************************************************************/
 
-void readfontchar(ZFILE *file, inchr theord)
-{
-  int row,k;
-  char templine[MAXLEN+1];
-  outchr endchar, outline[MAXLEN+1];
-  fcharnode *fclsave;
+void readfontchar(ZFILE *file, inchr theord) {
+    int row, k;
+    char templine[MAXLEN + 1];
+    outchr endchar, outline[MAXLEN + 1];
+    fcharnode *fclsave;
 
-  fclsave = fcharlist;
-  fcharlist = (fcharnode*)myalloc(sizeof(fcharnode));
-  fcharlist->ord = theord;
-  fcharlist->thechar = (outchr**)myalloc(sizeof(outchr*)*charheight);
-  fcharlist->next = fclsave;
+    fclsave = fcharlist;
+    fcharlist = (fcharnode *)myalloc(sizeof(fcharnode));
+    fcharlist->ord = theord;
+    fcharlist->thechar = (outchr **)myalloc(sizeof(outchr *) * charheight);
+    fcharlist->next = fclsave;
 
-  outline[0] = 0;
+    outline[0] = 0;
 
-  for (row=0;row<charheight;row++) {
-    if (myfgets(templine,MAXLEN,file)==NULL) {
-      templine[0] = '\0';
-      }
-#ifdef TLF_FONTS
-    utf8_to_wchar(templine,MAXLEN,outline,MAXLEN,0);
-#else
-    strcpy(outline,templine);
-#endif
-    k = STRLEN(outline)-1;
-    while (k>=0 && ISSPACE(outline[k])) {  /* remove trailing spaces */
-      k--;
-      }
-    if (k>=0) {
-      endchar = outline[k];  /* remove endmarks */
-      while (k>=0 && outline[k]==endchar) {
-        k--;
+    for (row = 0; row < charheight; row++) {
+        if (myfgets(templine, MAXLEN, file) == NULL) {
+            templine[0] = '\0';
         }
-      }
-    outline[k+1] = '\0';
-    fcharlist->thechar[row] = (outchr*)myalloc(sizeof(outchr)*(STRLEN(outline)+1));
-    STRCPY(fcharlist->thechar[row],outline);
+#ifdef TLF_FONTS
+        utf8_to_wchar(templine, MAXLEN, outline, MAXLEN, 0);
+#else
+        strcpy(outline, templine);
+#endif
+        k = STRLEN(outline) - 1;
+        while (k >= 0 && ISSPACE(outline[k])) { /* remove trailing spaces */
+            k--;
+        }
+        if (k >= 0) {
+            endchar = outline[k]; /* remove endmarks */
+            while (k >= 0 && outline[k] == endchar) {
+                k--;
+            }
+        }
+        outline[k + 1] = '\0';
+        fcharlist->thechar[row] =
+            (outchr *)myalloc(sizeof(outchr) * (STRLEN(outline) + 1));
+        STRCPY(fcharlist->thechar[row], outline);
     }
 }
-
 
 /****************************************************************************
 
@@ -1245,111 +1232,114 @@ void readfontchar(ZFILE *file, inchr theord)
 
 ****************************************************************************/
 
-void readfont()
-{
-  int i,row,numsread;
-  inchr theord;
-  int maxlen,cmtlines,ffright2left;
-  int smush,smush2;
-  char fileline[MAXLEN+1],magicnum[5];
-  ZFILE *fontfile;
+void readfont() {
+    int i, row, numsread;
+    inchr theord;
+    int maxlen, cmtlines, ffright2left;
+    int smush, smush2;
+    char fileline[MAXLEN + 1], magicnum[5];
+    ZFILE *fontfile;
 
-  fontfile = FIGopen(fontname,FONTFILESUFFIX);
+    fontfile = FIGopen(fontname, FONTFILESUFFIX);
 #ifdef TLF_FONTS
-  if (fontfile==NULL) {
-    fontfile = FIGopen(fontname,TOILETFILESUFFIX);
-    if(fontfile) toiletfont = 1;
+    if (fontfile == NULL) {
+        fontfile = FIGopen(fontname, TOILETFILESUFFIX);
+        if (fontfile) toiletfont = 1;
     }
 #endif
 
-  if (fontfile==NULL) {
-    fprintf(stderr,"%s: %s: Unable to open font file\n",myname,fontname);
-    exit(1);
+    if (fontfile == NULL) {
+        fprintf(stderr, "%s: %s: Unable to open font file\n", myname, fontname);
+        exit(1);
     }
 
-  readmagic(fontfile,magicnum);
-  if (myfgets(fileline,MAXLEN,fontfile)==NULL) {
-    fileline[0] = '\0';
+    readmagic(fontfile, magicnum);
+    if (myfgets(fileline, MAXLEN, fontfile) == NULL) {
+        fileline[0] = '\0';
     }
-  if (MYSTRLEN(fileline)>0 ? fileline[MYSTRLEN(fileline)-1]!='\n' : 0) {
-    skiptoeol(fontfile);
+    if (MYSTRLEN(fileline) > 0 ? fileline[MYSTRLEN(fileline) - 1] != '\n' : 0) {
+        skiptoeol(fontfile);
     }
-  numsread = sscanf(fileline,"%*c%c %d %*d %d %d %d %d %d",
-    &hardblank,&charheight,&maxlen,&smush,&cmtlines,
-    &ffright2left,&smush2);
+    numsread =
+        sscanf(fileline, "%*c%c %d %*d %d %d %d %d %d", &hardblank, &charheight,
+               &maxlen, &smush, &cmtlines, &ffright2left, &smush2);
 
-  if (maxlen > MAXLEN) {
-    fprintf(stderr,"%s: %s: character is too wide\n",myname,fontname);
-    exit(1);
+    if (maxlen > MAXLEN) {
+        fprintf(stderr, "%s: %s: character is too wide\n", myname, fontname);
+        exit(1);
     }
 #ifdef TLF_FONTS
-  if ((!toiletfont && strcmp(magicnum,FONTFILEMAGICNUMBER)) ||
-      (toiletfont && strcmp(magicnum,TOILETFILEMAGICNUMBER)) || numsread<5) {
+    if ((!toiletfont && strcmp(magicnum, FONTFILEMAGICNUMBER)) ||
+        (toiletfont && strcmp(magicnum, TOILETFILEMAGICNUMBER)) ||
+        numsread < 5) {
 #else
-  if (strcmp(magicnum,FONTFILEMAGICNUMBER) || numsread<5) {
+    if (strcmp(magicnum, FONTFILEMAGICNUMBER) || numsread < 5) {
 #endif
-    fprintf(stderr,"%s: %s: Not a FIGlet 2 font file\n",myname,fontname);
-    exit(1);
+        fprintf(stderr, "%s: %s: Not a FIGlet 2 font file\n", myname, fontname);
+        exit(1);
     }
-  for (i=1;i<=cmtlines;i++) {
-    skiptoeol(fontfile);
-    }
-
-  if (numsread<6) {
-    ffright2left = 0;
+    for (i = 1; i <= cmtlines; i++) {
+        skiptoeol(fontfile);
     }
 
-  if (numsread<7) { /* if no smush2, decode smush into smush2 */
-    if (smush == 0) smush2 = SM_KERN;
-    else if (smush < 0) smush2 = 0;
-    else smush2 = (smush & 31) | SM_SMUSH;
+    if (numsread < 6) {
+        ffright2left = 0;
     }
 
-  if (charheight<1) {
-    charheight = 1;
+    if (numsread < 7) { /* if no smush2, decode smush into smush2 */
+        if (smush == 0)
+            smush2 = SM_KERN;
+        else if (smush < 0)
+            smush2 = 0;
+        else
+            smush2 = (smush & 31) | SM_SMUSH;
     }
 
-  if (maxlen<1) {
-    maxlen = 1;
+    if (charheight < 1) {
+        charheight = 1;
     }
 
-  maxlen += 100; /* Give ourselves some extra room */
-
-  if (smushoverride == SMO_NO)
-     smushmode = smush2;
-  else if (smushoverride == SMO_FORCE)
-     smushmode |= smush2;
-
-  if (right2left<0) {
-    right2left = ffright2left;
+    if (maxlen < 1) {
+        maxlen = 1;
     }
 
-  if (justification<0) {
-    justification = 2*right2left;
+    maxlen += 100; /* Give ourselves some extra room */
+
+    if (smushoverride == SMO_NO)
+        smushmode = smush2;
+    else if (smushoverride == SMO_FORCE)
+        smushmode |= smush2;
+
+    if (right2left < 0) {
+        right2left = ffright2left;
     }
 
-  /* Allocate "missing" character */
-  fcharlist = (fcharnode*)myalloc(sizeof(fcharnode));
-  fcharlist->ord = 0;
-  fcharlist->thechar = (outchr**)myalloc(sizeof(outchr*)*charheight);
-  fcharlist->next = NULL;
-  for (row=0;row<charheight;row++) {
-    fcharlist->thechar[row] = (outchr*)myalloc(sizeof(outchr));
-    fcharlist->thechar[row][0] = '\0';
+    if (justification < 0) {
+        justification = 2 * right2left;
     }
-  for (theord=' ';theord<='~';theord++) {
-    readfontchar(fontfile,theord);
+
+    /* Allocate "missing" character */
+    fcharlist = (fcharnode *)myalloc(sizeof(fcharnode));
+    fcharlist->ord = 0;
+    fcharlist->thechar = (outchr **)myalloc(sizeof(outchr *) * charheight);
+    fcharlist->next = NULL;
+    for (row = 0; row < charheight; row++) {
+        fcharlist->thechar[row] = (outchr *)myalloc(sizeof(outchr));
+        fcharlist->thechar[row][0] = '\0';
     }
-  for (theord=0;theord<=6;theord++) {
-    readfontchar(fontfile,deutsch[theord]);
+    for (theord = ' '; theord <= '~'; theord++) {
+        readfontchar(fontfile, theord);
     }
-  while (myfgets(fileline,maxlen+1,fontfile)==NULL?0:
-    sscanf(fileline,"%li",&theord)==1) {
-    readfontchar(fontfile,theord);
+    for (theord = 0; theord <= 6; theord++) {
+        readfontchar(fontfile, deutsch[theord]);
     }
-  Zclose(fontfile);
+    while (myfgets(fileline, maxlen + 1, fontfile) == NULL
+               ? 0
+               : sscanf(fileline, "%li", &theord) == 1) {
+        readfontchar(fontfile, theord);
+    }
+    Zclose(fontfile);
 }
-
 
 /****************************************************************************
 
@@ -1360,19 +1350,18 @@ void readfont()
 
 ****************************************************************************/
 
-void linealloc()
-{
-  int row; 
+void linealloc() {
+    int row;
 
-  outputline = (outchr**)myalloc(sizeof(outchr*)*charheight);
-  for (row=0;row<charheight;row++) {
-    outputline[row] = (outchr*)myalloc(sizeof(outchr)*(outlinelenlimit+1));
+    outputline = (outchr **)myalloc(sizeof(outchr *) * charheight);
+    for (row = 0; row < charheight; row++) {
+        outputline[row] =
+            (outchr *)myalloc(sizeof(outchr) * (outlinelenlimit + 1));
     }
-  inchrlinelenlimit = outputwidth*4+100;
-  inchrline = (inchr*)myalloc(sizeof(inchr)*(inchrlinelenlimit+1));
-  clearline();
+    inchrlinelenlimit = outputwidth * 4 + 100;
+    inchrline = (inchr *)myalloc(sizeof(inchr) * (inchrlinelenlimit + 1));
+    clearline();
 }
-
 
 /****************************************************************************
 
@@ -1383,24 +1372,23 @@ void linealloc()
 
 ****************************************************************************/
 
-void getletter(inchr c)
-{
-  fcharnode *charptr;
+void getletter(inchr c) {
+    fcharnode *charptr;
 
-  for (charptr=fcharlist;charptr==NULL?0:charptr->ord!=c;
-    charptr=charptr->next) ;
-  if (charptr!=NULL) {
-    currchar = charptr->thechar;
+    for (charptr = fcharlist; charptr == NULL ? 0 : charptr->ord != c;
+         charptr = charptr->next)
+        ;
+    if (charptr != NULL) {
+        currchar = charptr->thechar;
+    } else {
+        for (charptr = fcharlist; charptr == NULL ? 0 : charptr->ord != 0;
+             charptr = charptr->next)
+            ;
+        currchar = charptr->thechar;
     }
-  else {
-    for (charptr=fcharlist;charptr==NULL?0:charptr->ord!=0;
-      charptr=charptr->next) ;
-    currchar = charptr->thechar;
-    }
-  previouscharwidth = currcharwidth;
-  currcharwidth = STRLEN(currchar[0]);
+    previouscharwidth = currcharwidth;
+    currcharwidth = STRLEN(currchar[0]);
 }
-
 
 /****************************************************************************
 
@@ -1421,83 +1409,81 @@ void getletter(inchr c)
 
 ****************************************************************************/
 
-outchr smushem(outchr lch, outchr rch)
-{
-  if (lch==' ') return rch;
-  if (rch==' ') return lch;
+outchr smushem(outchr lch, outchr rch) {
+    if (lch == ' ') return rch;
+    if (rch == ' ') return lch;
 
-  if (previouscharwidth<2 || currcharwidth<2) return '\0';
+    if (previouscharwidth < 2 || currcharwidth < 2) return '\0';
     /* Disallows overlapping if the previous character */
     /* or the current character has a width of 1 or zero. */
 
-  if ((smushmode & SM_SMUSH) == 0) return '\0';  /* kerning */
+    if ((smushmode & SM_SMUSH) == 0) return '\0'; /* kerning */
 
-  if ((smushmode & 63) == 0) {
-    /* This is smushing by universal overlapping. */
-    /* Unreachable code: lch==' ' or rch==' ' already handled!
-    if (lch==' ') return rch;
-    if (rch==' ') return lch;
-    */
+    if ((smushmode & 63) == 0) {
+        /* This is smushing by universal overlapping. */
+        /* Unreachable code: lch==' ' or rch==' ' already handled!
+        if (lch==' ') return rch;
+        if (rch==' ') return lch;
+        */
 
-    if (lch==hardblank) return rch;
-    if (rch==hardblank) return lch;
-      /* Above four lines ensure overlapping preference to */
-      /* visible characters. */
-    if (right2left==1) return lch;
-      /* Above line ensures that the dominant (foreground) */
-      /* fig-character for overlapping is the latter in the */
-      /* user's text, not necessarily the rightmost character. */
-    return rch;
-      /* Occurs in the absence of above exceptions. */
-    }
-  
-  if (smushmode & SM_HARDBLANK) {
-    if (lch==hardblank && rch==hardblank) return lch;
+        if (lch == hardblank) return rch;
+        if (rch == hardblank) return lch;
+        /* Above four lines ensure overlapping preference to */
+        /* visible characters. */
+        if (right2left == 1) return lch;
+        /* Above line ensures that the dominant (foreground) */
+        /* fig-character for overlapping is the latter in the */
+        /* user's text, not necessarily the rightmost character. */
+        return rch;
+        /* Occurs in the absence of above exceptions. */
     }
 
-  if (lch==hardblank || rch==hardblank) return '\0';
-
-  if (smushmode & SM_EQUAL) {
-    if (lch==rch) return lch;
+    if (smushmode & SM_HARDBLANK) {
+        if (lch == hardblank && rch == hardblank) return lch;
     }
 
-  if (smushmode & SM_LOWLINE) {
-    if (lch=='_' && strchr("|/\\[]{}()<>",rch)) return rch;
-    if (rch=='_' && strchr("|/\\[]{}()<>",lch)) return lch;
+    if (lch == hardblank || rch == hardblank) return '\0';
+
+    if (smushmode & SM_EQUAL) {
+        if (lch == rch) return lch;
     }
 
-  if (smushmode & SM_HIERARCHY) {
-    if (lch=='|' && strchr("/\\[]{}()<>",rch)) return rch;
-    if (rch=='|' && strchr("/\\[]{}()<>",lch)) return lch;
-    if (strchr("/\\",lch) && strchr("[]{}()<>",rch)) return rch;
-    if (strchr("/\\",rch) && strchr("[]{}()<>",lch)) return lch;
-    if (strchr("[]",lch) && strchr("{}()<>",rch)) return rch;
-    if (strchr("[]",rch) && strchr("{}()<>",lch)) return lch;
-    if (strchr("{}",lch) && strchr("()<>",rch)) return rch;
-    if (strchr("{}",rch) && strchr("()<>",lch)) return lch;
-    if (strchr("()",lch) && strchr("<>",rch)) return rch;
-    if (strchr("()",rch) && strchr("<>",lch)) return lch;
+    if (smushmode & SM_LOWLINE) {
+        if (lch == '_' && strchr("|/\\[]{}()<>", rch)) return rch;
+        if (rch == '_' && strchr("|/\\[]{}()<>", lch)) return lch;
     }
 
-  if (smushmode & SM_PAIR) {
-    if (lch=='[' && rch==']') return '|';
-    if (rch=='[' && lch==']') return '|';
-    if (lch=='{' && rch=='}') return '|';
-    if (rch=='{' && lch=='}') return '|';
-    if (lch=='(' && rch==')') return '|';
-    if (rch=='(' && lch==')') return '|';
+    if (smushmode & SM_HIERARCHY) {
+        if (lch == '|' && strchr("/\\[]{}()<>", rch)) return rch;
+        if (rch == '|' && strchr("/\\[]{}()<>", lch)) return lch;
+        if (strchr("/\\", lch) && strchr("[]{}()<>", rch)) return rch;
+        if (strchr("/\\", rch) && strchr("[]{}()<>", lch)) return lch;
+        if (strchr("[]", lch) && strchr("{}()<>", rch)) return rch;
+        if (strchr("[]", rch) && strchr("{}()<>", lch)) return lch;
+        if (strchr("{}", lch) && strchr("()<>", rch)) return rch;
+        if (strchr("{}", rch) && strchr("()<>", lch)) return lch;
+        if (strchr("()", lch) && strchr("<>", rch)) return rch;
+        if (strchr("()", rch) && strchr("<>", lch)) return lch;
     }
 
-  if (smushmode & SM_BIGX) {
-    if (lch=='/' && rch=='\\') return '|';
-    if (rch=='/' && lch=='\\') return 'Y';
-    if (lch=='>' && rch=='<') return 'X';
-      /* Don't want the reverse of above to give 'X'. */
+    if (smushmode & SM_PAIR) {
+        if (lch == '[' && rch == ']') return '|';
+        if (rch == '[' && lch == ']') return '|';
+        if (lch == '{' && rch == '}') return '|';
+        if (rch == '{' && lch == '}') return '|';
+        if (lch == '(' && rch == ')') return '|';
+        if (rch == '(' && lch == ')') return '|';
     }
 
-  return '\0';
+    if (smushmode & SM_BIGX) {
+        if (lch == '/' && rch == '\\') return '|';
+        if (rch == '/' && lch == '\\') return 'Y';
+        if (lch == '>' && rch == '<') return 'X';
+        /* Don't want the reverse of above to give 'X'. */
+    }
+
+    return '\0';
 }
-
 
 /****************************************************************************
 
@@ -1508,47 +1494,51 @@ outchr smushem(outchr lch, outchr rch)
 
 ****************************************************************************/
 
-int smushamt()
-{
-  int maxsmush,amt;
-  int row,linebd,charbd;
-  outchr ch1,ch2;
+int smushamt() {
+    int maxsmush, amt;
+    int row, linebd, charbd;
+    outchr ch1, ch2;
 
-  if ((smushmode & (SM_SMUSH | SM_KERN)) == 0) {
-    return 0;
+    if ((smushmode & (SM_SMUSH | SM_KERN)) == 0) {
+        return 0;
     }
-  maxsmush = currcharwidth;
-  for (row=0;row<charheight;row++) {
-    if (right2left) {
-      if (maxsmush>STRLEN(outputline[row])) {
-        maxsmush=STRLEN(outputline[row]);
+    maxsmush = currcharwidth;
+    for (row = 0; row < charheight; row++) {
+        if (right2left) {
+            if (maxsmush > STRLEN(outputline[row])) {
+                maxsmush = STRLEN(outputline[row]);
+            }
+            for (charbd = STRLEN(currchar[row]); ch1 = currchar[row][charbd],
+                (charbd > 0 && (!ch1 || ch1 == ' '));
+                 charbd--)
+                ;
+            for (linebd = 0; ch2 = outputline[row][linebd], ch2 == ' ';
+                 linebd++)
+                ;
+            amt = linebd + currcharwidth - 1 - charbd;
+        } else {
+            for (linebd = STRLEN(outputline[row]);
+                 ch1 = outputline[row][linebd],
+                (linebd > 0 && (!ch1 || ch1 == ' '));
+                 linebd--)
+                ;
+            for (charbd = 0; ch2 = currchar[row][charbd], ch2 == ' '; charbd++)
+                ;
+            amt = charbd + outlinelen - 1 - linebd;
         }
-      for (charbd=STRLEN(currchar[row]);
-        ch1=currchar[row][charbd],(charbd>0&&(!ch1||ch1==' '));charbd--) ;
-      for (linebd=0;ch2=outputline[row][linebd],ch2==' ';linebd++) ;
-      amt = linebd+currcharwidth-1-charbd;
-      }
-    else {
-      for (linebd=STRLEN(outputline[row]);
-        ch1 = outputline[row][linebd],(linebd>0&&(!ch1||ch1==' '));linebd--) ;
-      for (charbd=0;ch2=currchar[row][charbd],ch2==' ';charbd++) ;
-      amt = charbd+outlinelen-1-linebd;
-      }
-    if (!ch1||ch1==' ') {
-      amt++;
-      }
-    else if (ch2) {
-      if (smushem(ch1,ch2)!='\0') {
-        amt++;
+        if (!ch1 || ch1 == ' ') {
+            amt++;
+        } else if (ch2) {
+            if (smushem(ch1, ch2) != '\0') {
+                amt++;
+            }
         }
-      }
-    if (amt<maxsmush) {
-      maxsmush = amt;
-      }
+        if (amt < maxsmush) {
+            maxsmush = amt;
+        }
     }
-  return maxsmush;
+    return maxsmush;
 }
-
 
 /****************************************************************************
 
@@ -1559,47 +1549,45 @@ int smushamt()
 
 ****************************************************************************/
 
-int addchar(inchr c)
-{
-  int smushamount,row,k,column;
-  outchr *templine;
+int addchar(inchr c) {
+    int smushamount, row, k, column;
+    outchr *templine;
 
-  getletter(c);
-  smushamount = smushamt();
-  if (outlinelen+currcharwidth-smushamount>outlinelenlimit
-      ||inchrlinelen+1>inchrlinelenlimit) {
-    return 0;
+    getletter(c);
+    smushamount = smushamt();
+    if (outlinelen + currcharwidth - smushamount > outlinelenlimit ||
+        inchrlinelen + 1 > inchrlinelenlimit) {
+        return 0;
     }
 
-  templine = (outchr*)myalloc(sizeof(outchr)*(outlinelenlimit+1));
-  for (row=0;row<charheight;row++) {
-    if (right2left) {
-      STRCPY(templine,currchar[row]);
-      for (k=0;k<smushamount;k++) {
-        templine[currcharwidth-smushamount+k] =
-          smushem(templine[currcharwidth-smushamount+k],outputline[row][k]);
+    templine = (outchr *)myalloc(sizeof(outchr) * (outlinelenlimit + 1));
+    for (row = 0; row < charheight; row++) {
+        if (right2left) {
+            STRCPY(templine, currchar[row]);
+            for (k = 0; k < smushamount; k++) {
+                templine[currcharwidth - smushamount + k] =
+                    smushem(templine[currcharwidth - smushamount + k],
+                            outputline[row][k]);
+            }
+            STRCAT(templine, outputline[row] + smushamount);
+            STRCPY(outputline[row], templine);
+        } else {
+            for (k = 0; k < smushamount; k++) {
+                column = outlinelen - smushamount + k;
+                if (column < 0) {
+                    column = 0;
+                }
+                outputline[row][column] =
+                    smushem(outputline[row][column], currchar[row][k]);
+            }
+            STRCAT(outputline[row], currchar[row] + smushamount);
         }
-      STRCAT(templine,outputline[row]+smushamount);
-      STRCPY(outputline[row],templine);
-      }
-    else {
-      for (k=0;k<smushamount;k++) {
-	column = outlinelen-smushamount+k;
-	if (column < 0) {
-	  column = 0;
-	  }
-        outputline[row][column] =
-          smushem(outputline[row][column],currchar[row][k]);
-        }
-      STRCAT(outputline[row],currchar[row]+smushamount);
-      }
     }
-  free(templine);
-  outlinelen = STRLEN(outputline[0]);
-  inchrline[inchrlinelen++] = c;
-  return 1;
+    free(templine);
+    outlinelen = STRLEN(outputline[0]);
+    inchrline[inchrlinelen++] = c;
+    return 1;
 }
-
 
 /****************************************************************************
 
@@ -1614,45 +1602,45 @@ int addchar(inchr c)
 
 ****************************************************************************/
 
-void putstring(outchr *string)
-{
-  int i,len;
-  char c[10];
+void putstring(outchr *string) {
+    int i, len;
+    char c[10];
 #ifdef TLF_FONTS
-  size_t size;
-  wchar_t wc[2];
+    size_t size;
+    wchar_t wc[2];
 #endif
 
-  len = STRLEN(string);
-  if (outputwidth>1) {
-    if (len>outputwidth-1) {
-      len = outputwidth-1;
-      }
-    if (justification>0) {
-      for (i=1;(3-justification)*i+len+justification-2<outputwidth;i++) {
-        putchar(' ');
+    len = STRLEN(string);
+    if (outputwidth > 1) {
+        if (len > outputwidth - 1) {
+            len = outputwidth - 1;
         }
-      }
+        if (justification > 0) {
+            for (i = 1; (3 - justification) * i + len + justification - 2 <
+                        outputwidth;
+                 i++) {
+                putchar(' ');
+            }
+        }
     }
-  for (i=0;i<len;i++) {
+    for (i = 0; i < len; i++) {
 #ifdef TLF_FONTS
-    wc[0] = string[i];
-    wc[1] = 0;
-    size = wchar_to_utf8(wc,1,c,10,0);
-    if(size==1) {
-      if(c[0]==hardblank) {
-        c[0] = ' ';
+        wc[0] = string[i];
+        wc[1] = 0;
+        size = wchar_to_utf8(wc, 1, c, 10, 0);
+        if (size == 1) {
+            if (c[0] == hardblank) {
+                c[0] = ' ';
+            }
         }
-      }
-    c[size] = 0;
-    printf("%s",c);
+        c[size] = 0;
+        printf("%s", c);
 #else
-    putchar(string[i]==hardblank?' ':string[i]);
+        putchar(string[i] == hardblank ? ' ' : string[i]);
 #endif
     }
-  putchar('\n');
+    putchar('\n');
 }
-
 
 /****************************************************************************
 
@@ -1662,16 +1650,14 @@ void putstring(outchr *string)
 
 ****************************************************************************/
 
-void printline()
-{
-  int i;
+void printline() {
+    int i;
 
-  for (i=0;i<charheight;i++) {
-    putstring(outputline[i]);
+    for (i = 0; i < charheight; i++) {
+        putstring(outputline[i]);
     }
-  clearline();
+    clearline();
 }
-
 
 /****************************************************************************
 
@@ -1683,44 +1669,42 @@ void printline()
 
 ****************************************************************************/
 
-void splitline()
-{
-  int i,gotspace,lastspace,len1,len2;
-  inchr *part1,*part2;
+void splitline() {
+    int i, gotspace, lastspace, len1, len2;
+    inchr *part1, *part2;
 
-  part1 = (inchr*)myalloc(sizeof(inchr)*(inchrlinelen+1));
-  part2 = (inchr*)myalloc(sizeof(inchr)*(inchrlinelen+1));
-  gotspace = 0;
-  lastspace = inchrlinelen-1;
-  for (i=inchrlinelen-1;i>=0;i--) {
-    if (!gotspace && inchrline[i]==' ') {
-      gotspace = 1;
-      lastspace = i;
-      }
-    if (gotspace && inchrline[i]!=' ') {
-      break;
-      }
+    part1 = (inchr *)myalloc(sizeof(inchr) * (inchrlinelen + 1));
+    part2 = (inchr *)myalloc(sizeof(inchr) * (inchrlinelen + 1));
+    gotspace = 0;
+    lastspace = inchrlinelen - 1;
+    for (i = inchrlinelen - 1; i >= 0; i--) {
+        if (!gotspace && inchrline[i] == ' ') {
+            gotspace = 1;
+            lastspace = i;
+        }
+        if (gotspace && inchrline[i] != ' ') {
+            break;
+        }
     }
-  len1 = i+1;
-  len2 = inchrlinelen-lastspace-1;
-  for (i=0;i<len1;i++) {
-    part1[i] = inchrline[i];
+    len1 = i + 1;
+    len2 = inchrlinelen - lastspace - 1;
+    for (i = 0; i < len1; i++) {
+        part1[i] = inchrline[i];
     }
-  for (i=0;i<len2;i++) {
-    part2[i] = inchrline[lastspace+1+i];
+    for (i = 0; i < len2; i++) {
+        part2[i] = inchrline[lastspace + 1 + i];
     }
-  clearline();
-  for (i=0;i<len1;i++) {
-    addchar(part1[i]);
+    clearline();
+    for (i = 0; i < len1; i++) {
+        addchar(part1[i]);
     }
-  printline();
-  for (i=0;i<len2;i++) {
-    addchar(part2[i]);
+    printline();
+    for (i = 0; i < len2; i++) {
+        addchar(part2[i]);
     }
-  free(part1);
-  free(part2);
+    free(part1);
+    free(part2);
 }
-
 
 /****************************************************************************
 
@@ -1731,24 +1715,22 @@ void splitline()
 
 ****************************************************************************/
 
-inchr handlemapping(inchr c)
-{
-  comnode *cmptr;
+inchr handlemapping(inchr c) {
+    comnode *cmptr;
 
-  cmptr=commandlist;
-  while (cmptr!=NULL) {
-    if (cmptr->thecommand ?
-      (c >= cmptr->rangelo && c <= cmptr->rangehi) : 0) {
-      c += cmptr->offset;
-      while(cmptr!=NULL ? cmptr->thecommand : 0) {
-        cmptr=cmptr->next;
+    cmptr = commandlist;
+    while (cmptr != NULL) {
+        if (cmptr->thecommand ? (c >= cmptr->rangelo && c <= cmptr->rangehi)
+                              : 0) {
+            c += cmptr->offset;
+            while (cmptr != NULL ? cmptr->thecommand : 0) {
+                cmptr = cmptr->next;
+            }
+        } else {
+            cmptr = cmptr->next;
         }
-      }
-    else {
-      cmptr=cmptr->next;
-      }
     }
-  return c;
+    return c;
 }
 
 /****************************************************************************
@@ -1761,40 +1743,38 @@ inchr handlemapping(inchr c)
 
 ****************************************************************************/
 
-int Agetchar()
-{
-    extern int optind;		/* current argv[] element under study */
-    static int AgetMode = 0;	/* >= 0 for displacement into argv[n], <0 EOF */
-    char   *arg;		/* pointer to active character */
-    int    c;			/* current character */
+int Agetchar() {
+    extern int optind;       /* current argv[] element under study */
+    static int AgetMode = 0; /* >= 0 for displacement into argv[n], <0 EOF */
+    char *arg;               /* pointer to active character */
+    int c;                   /* current character */
 
-    if ( ! cmdinput )		/* is -A active? */
-	return( getchar() );	/* no: return stdin character */
+    if (!cmdinput)          /* is -A active? */
+        return (getchar()); /* no: return stdin character */
 
-    if ( AgetMode < 0 || optind >= Myargc )		/* EOF is sticky: */
-	return( EOF );		/* **ensure it now and forever more */
+    if (AgetMode < 0 || optind >= Myargc) /* EOF is sticky: */
+        return (EOF);                     /* **ensure it now and forever more */
 
     /* find next character */
-    arg = Myargv[optind];		/* pointer to active arg */
-    c = arg[AgetMode++]&0xFF;	/* get appropriate char of arg */
+    arg = Myargv[optind];       /* pointer to active arg */
+    c = arg[AgetMode++] & 0xFF; /* get appropriate char of arg */
 
-    if ( ! c )			/* at '\0' that terminates word? */
-    {   /* at end of word: return ' ' if normal word, '\n' if empty */
-	c = ' ';		/* suppose normal word and return blank */
-	if ( AgetMode == 1 )	/* if ran out in very 1st char, force \n */
-	    c = '\n';		/* (allows "hello '' world" to do \n at '') */
-	AgetMode = 0;		/* return to char 0 in NEXT word */
-	if ( ++optind >= Myargc )	/* run up word count and check if at "EOF" */
-	{   /* just ran out of arguments */
-	    c = EOF;		/* return EOF */
-	    AgetMode = -1;	/* ensure all future returns return EOF */
-	}
+    if (!c)      /* at '\0' that terminates word? */
+    {            /* at end of word: return ' ' if normal word, '\n' if empty */
+        c = ' '; /* suppose normal word and return blank */
+        if (AgetMode == 1)      /* if ran out in very 1st char, force \n */
+            c = '\n';           /* (allows "hello '' world" to do \n at '') */
+        AgetMode = 0;           /* return to char 0 in NEXT word */
+        if (++optind >= Myargc) /* run up word count and check if at "EOF" */
+        {                       /* just ran out of arguments */
+            c = EOF;            /* return EOF */
+            AgetMode = -1;      /* ensure all future returns return EOF */
+        }
     }
 
-    return( c );		/* return appropriate character */
+    return (c); /* return appropriate character */
 
-}	/* end: Agetchar() */
-
+} /* end: Agetchar() */
 
 /****************************************************************************
 
@@ -1804,137 +1784,141 @@ int Agetchar()
 
 ******************************************************************************/
 
-inchr iso2022()
-{
-  inchr ch;
-  inchr ch2;
-  int save_gl;
-  int save_gr;
+inchr iso2022() {
+    inchr ch;
+    inchr ch2;
+    int save_gl;
+    int save_gr;
 
-  ch = Agetchar();
-  if (ch == EOF) return ch;
-  if (ch == 27) ch = Agetchar() + 0x100; /* ESC x */
-  if (ch == 0x100 + '$') ch = Agetchar() + 0x200; /* ESC $ x */
-  switch (ch) {
-    case 14: /* invoke G1 into GL */
-      gl = 1;
-      return iso2022();
-    case 15: /* invoke G0 into GL */
-      gl = 0;
-      return iso2022();
-    case 142: case 'N' + 0x100: /* invoke G2 into GL for next char */
-      save_gl = gl; save_gr = gr;
-      gl = gr = 2;
-      ch = iso2022();
-      gl = save_gl; gr = save_gr;
-      return ch;
-    case 143: case 'O' + 0x100: /* invoke G3 into GL for next char */
-      save_gl = gl; save_gr = gr;
-      gl = gr = 3;
-      ch = iso2022();
-      gl = save_gl; gr = save_gr;
-      return ch;
-    case 'n' + 0x100: /* invoke G2 into GL */
-      gl = 2;
-      return iso2022();
-    case 'o' + 0x100: /* invoke G3 into GL */
-      gl = 3;
-      return iso2022();
-    case '~' + 0x100: /* invoke G1 into GR */
-      gr = 1;
-      return iso2022();
-    case '}' + 0x100: /* invoke G2 into GR */
-      gr = 2;
-      return iso2022();
-    case '|' + 0x100: /* invoke G3 into GR */
-      gr = 3;
-      return iso2022();
-    case '(' + 0x100: /* set G0 to 94-char set */
-      ch = Agetchar();
-      if (ch == 'B') ch = 0; /* ASCII */
-      gn[0] = ch << 16;
-      gndbl[0] = 0;
-      return iso2022();
-    case ')' + 0x100: /* set G1 to 94-char set */
-      ch = Agetchar();
-      if (ch == 'B') ch = 0;
-      gn[1] = ch << 16;
-      gndbl[1] = 0;
-      return iso2022();
-    case '*' + 0x100: /* set G2 to 94-char set */
-      ch = Agetchar();
-      if (ch == 'B') ch = 0;
-      gn[2] = ch << 16;
-      gndbl[2] = 0;
-      return iso2022();
-    case '+' + 0x100: /* set G3 to 94-char set */
-      ch = Agetchar();
-      if (ch == 'B') ch = 0;
-      gn[3] = ch << 16;
-      gndbl[3] = 0;
-      return iso2022();
-    case '-' + 0x100: /* set G1 to 96-char set */
-      ch = Agetchar();
-      if (ch == 'A') ch = 0; /* Latin-1 top half */
-      gn[1] = (ch << 16) | 0x80;
-      gndbl[1] = 0;
-      return iso2022();
-    case '.' + 0x100: /* set G2 to 96-char set */
-      ch = Agetchar();
-      if (ch == 'A') ch = 0;
-      gn[2] = (ch << 16) | 0x80;
-      gndbl[2] = 0;
-      return iso2022();
-    case '/' + 0x100: /* set G3 to 96-char set */
-      ch = Agetchar();
-      if (ch == 'A') ch = 0;
-      gn[3] = (ch << 16) | 0x80;
-      gndbl[3] = 0;
-      return iso2022();
-    case '(' + 0x200: /* set G0 to 94 x 94 char set */
-      ch = Agetchar();
-      gn[0] = ch << 16;
-      gndbl[0] = 1;
-      return iso2022();
-    case ')' + 0x200: /* set G1 to 94 x 94 char set */
-      ch = Agetchar();
-      gn[1] = ch << 16;
-      gndbl[1] = 1;
-      return iso2022();
-    case '*' + 0x200: /* set G2 to 94 x 94 char set */
-      ch = Agetchar();
-      gn[2] = ch << 16;
-      gndbl[2] = 1;
-      return iso2022();
-    case '+' + 0x200: /* set G3 to 94 x 94 char set */
-      ch = Agetchar();
-      gn[3] = ch << 16;
-      gndbl[3] = 1;
-      return iso2022();
-    default:
-      if (ch & 0x200) { /* set G0 to 94 x 94 char set (deprecated) */
-        gn[0] = (ch & ~0x200) << 16;
-        gndbl[0] = 1;
-        return iso2022();
-        }
-      }
+    ch = Agetchar();
+    if (ch == EOF) return ch;
+    if (ch == 27) ch = Agetchar() + 0x100;          /* ESC x */
+    if (ch == 0x100 + '$') ch = Agetchar() + 0x200; /* ESC $ x */
+    switch (ch) {
+        case 14: /* invoke G1 into GL */
+            gl = 1;
+            return iso2022();
+        case 15: /* invoke G0 into GL */
+            gl = 0;
+            return iso2022();
+        case 142:
+        case 'N' + 0x100: /* invoke G2 into GL for next char */
+            save_gl = gl;
+            save_gr = gr;
+            gl = gr = 2;
+            ch = iso2022();
+            gl = save_gl;
+            gr = save_gr;
+            return ch;
+        case 143:
+        case 'O' + 0x100: /* invoke G3 into GL for next char */
+            save_gl = gl;
+            save_gr = gr;
+            gl = gr = 3;
+            ch = iso2022();
+            gl = save_gl;
+            gr = save_gr;
+            return ch;
+        case 'n' + 0x100: /* invoke G2 into GL */
+            gl = 2;
+            return iso2022();
+        case 'o' + 0x100: /* invoke G3 into GL */
+            gl = 3;
+            return iso2022();
+        case '~' + 0x100: /* invoke G1 into GR */
+            gr = 1;
+            return iso2022();
+        case '}' + 0x100: /* invoke G2 into GR */
+            gr = 2;
+            return iso2022();
+        case '|' + 0x100: /* invoke G3 into GR */
+            gr = 3;
+            return iso2022();
+        case '(' + 0x100: /* set G0 to 94-char set */
+            ch = Agetchar();
+            if (ch == 'B') ch = 0; /* ASCII */
+            gn[0] = ch << 16;
+            gndbl[0] = 0;
+            return iso2022();
+        case ')' + 0x100: /* set G1 to 94-char set */
+            ch = Agetchar();
+            if (ch == 'B') ch = 0;
+            gn[1] = ch << 16;
+            gndbl[1] = 0;
+            return iso2022();
+        case '*' + 0x100: /* set G2 to 94-char set */
+            ch = Agetchar();
+            if (ch == 'B') ch = 0;
+            gn[2] = ch << 16;
+            gndbl[2] = 0;
+            return iso2022();
+        case '+' + 0x100: /* set G3 to 94-char set */
+            ch = Agetchar();
+            if (ch == 'B') ch = 0;
+            gn[3] = ch << 16;
+            gndbl[3] = 0;
+            return iso2022();
+        case '-' + 0x100: /* set G1 to 96-char set */
+            ch = Agetchar();
+            if (ch == 'A') ch = 0; /* Latin-1 top half */
+            gn[1] = (ch << 16) | 0x80;
+            gndbl[1] = 0;
+            return iso2022();
+        case '.' + 0x100: /* set G2 to 96-char set */
+            ch = Agetchar();
+            if (ch == 'A') ch = 0;
+            gn[2] = (ch << 16) | 0x80;
+            gndbl[2] = 0;
+            return iso2022();
+        case '/' + 0x100: /* set G3 to 96-char set */
+            ch = Agetchar();
+            if (ch == 'A') ch = 0;
+            gn[3] = (ch << 16) | 0x80;
+            gndbl[3] = 0;
+            return iso2022();
+        case '(' + 0x200: /* set G0 to 94 x 94 char set */
+            ch = Agetchar();
+            gn[0] = ch << 16;
+            gndbl[0] = 1;
+            return iso2022();
+        case ')' + 0x200: /* set G1 to 94 x 94 char set */
+            ch = Agetchar();
+            gn[1] = ch << 16;
+            gndbl[1] = 1;
+            return iso2022();
+        case '*' + 0x200: /* set G2 to 94 x 94 char set */
+            ch = Agetchar();
+            gn[2] = ch << 16;
+            gndbl[2] = 1;
+            return iso2022();
+        case '+' + 0x200: /* set G3 to 94 x 94 char set */
+            ch = Agetchar();
+            gn[3] = ch << 16;
+            gndbl[3] = 1;
+            return iso2022();
+        default:
+            if (ch & 0x200) { /* set G0 to 94 x 94 char set (deprecated) */
+                gn[0] = (ch & ~0x200) << 16;
+                gndbl[0] = 1;
+                return iso2022();
+            }
+    }
 
-  if (ch >= 0x21 && ch <= 0x7E) { /* process GL */
-    if (gndbl[gl]) {
-      ch2 = Agetchar();
-      return gn[gl] | (ch << 8) | ch2;
-      }
-    else return gn[gl] | ch;
-    }
-  else if (ch >= 0xA0 && ch <= 0xFF) { /* process GR */
-    if (gndbl[gr]) {
-      ch2 = Agetchar();
-      return gn[gr] | (ch << 8) | ch2;
-      }
-    else return gn[gr] | (ch & ~0x80);
-    }
-  else return ch;
-  }
+    if (ch >= 0x21 && ch <= 0x7E) { /* process GL */
+        if (gndbl[gl]) {
+            ch2 = Agetchar();
+            return gn[gl] | (ch << 8) | ch2;
+        } else
+            return gn[gl] | ch;
+    } else if (ch >= 0xA0 && ch <= 0xFF) { /* process GR */
+        if (gndbl[gr]) {
+            ch2 = Agetchar();
+            return gn[gr] | (ch << 8) | ch2;
+        } else
+            return gn[gr] | (ch & ~0x80);
+    } else
+        return ch;
+}
 
 /****************************************************************************
 
@@ -1947,11 +1931,10 @@ inchr iso2022()
 inchr getinchr_buffer;
 int getinchr_flag;
 
-inchr ungetinchr(inchr c)
-{
-  getinchr_buffer = c;
-  getinchr_flag = 1;
-  return c;
+inchr ungetinchr(inchr c) {
+    getinchr_buffer = c;
+    getinchr_flag = 1;
+    return c;
 }
 
 /*****************************************************************************
@@ -1970,85 +1953,78 @@ inchr ungetinchr(inchr c)
     "~~" is a tilde, "~x" for all other x is ignored).
   If multibyte = 4, Shift-JIS mode (0x80-0x9F and 0xE0-0xEF are first byte
     of a double-byte character, all other bytes are characters).
- 
+
 
 *****************************************************************************/
 
-inchr getinchr()
-{
-  int ch, ch2, ch3, ch4, ch5, ch6;
+inchr getinchr() {
+    int ch, ch2, ch3, ch4, ch5, ch6;
 
-  if (getinchr_flag) {
-    getinchr_flag = 0;
-    return getinchr_buffer;
+    if (getinchr_flag) {
+        getinchr_flag = 0;
+        return getinchr_buffer;
     }
 
-  switch(multibyte) {
-   case 0: /* single-byte */
-      return iso2022();
-   case 1: /* DBCS */
-     ch = Agetchar();
-     if ((ch >= 0x80 && ch <= 0x9F) ||
-         (ch >= 0xE0 && ch <= 0xEF)) {
-       ch = (ch << 8) + Agetchar();
-       }
-     return ch;
-   case 2: /* UTF-8 */
-      ch = Agetchar();
-      if (ch < 0x80) return ch;  /* handles EOF, too */
-      if (ch < 0xC0 || ch > 0xFD)
-        return 0x0080;  /* illegal first character */
-      ch2 = Agetchar() & 0x3F;
-      if (ch < 0xE0) return ((ch & 0x1F) << 6) + ch2;
-      ch3 = Agetchar() & 0x3F;
-      if (ch < 0xF0)
-        return ((ch & 0x0F) << 12) + (ch2 << 6) + ch3;
-      ch4 = Agetchar() & 0x3F;
-      if (ch < 0xF8)
-        return ((ch & 0x07) << 18) + (ch2 << 12) + (ch3 << 6) + ch4;
-      ch5 = Agetchar() & 0x3F;
-      if (ch < 0xFC)
-        return ((ch & 0x03) << 24) + (ch2 << 18) + (ch3 << 12) +
-          (ch4 << 6) + ch5;
-      ch6 = Agetchar() & 0x3F;
-      return ((ch & 0x01) << 30) + (ch2 << 24) + (ch3 << 18) +
-        (ch4 << 12) + (ch5 << 6) + ch6;
-   case 3: /* HZ */
-     ch = Agetchar();
-     if (ch == EOF) return ch;
-     if (hzmode) {
-       ch = (ch << 8) + Agetchar();
-       if (ch == ('}' << 8) + '~') {
-         hzmode = 0;
-         return getinchr();
-         }
-       return ch;
-       }
-     else if (ch == '~') {
-       ch = Agetchar();
-       if (ch == '{') {
-          hzmode = 1;
-          return getinchr();
-          }
-      else if (ch == '~') {
-        return ch;
-        }
-      else {
-        return getinchr();
-        }
-      }
-     else return ch;
-   case 4: /* Shift-JIS */
-     ch = Agetchar();
-     if ((ch >= 0x80 && ch <= 0x9F) ||
-         (ch >= 0xE0 && ch <= 0xEF)) {
-       ch = (ch << 8) + Agetchar();
-       }
-     return ch;
-   default:
-     return 0x80;
+    switch (multibyte) {
+        case 0: /* single-byte */
+            return iso2022();
+        case 1: /* DBCS */
+            ch = Agetchar();
+            if ((ch >= 0x80 && ch <= 0x9F) || (ch >= 0xE0 && ch <= 0xEF)) {
+                ch = (ch << 8) + Agetchar();
+            }
+            return ch;
+        case 2: /* UTF-8 */
+            ch = Agetchar();
+            if (ch < 0x80) return ch; /* handles EOF, too */
+            if (ch < 0xC0 || ch > 0xFD)
+                return 0x0080; /* illegal first character */
+            ch2 = Agetchar() & 0x3F;
+            if (ch < 0xE0) return ((ch & 0x1F) << 6) + ch2;
+            ch3 = Agetchar() & 0x3F;
+            if (ch < 0xF0) return ((ch & 0x0F) << 12) + (ch2 << 6) + ch3;
+            ch4 = Agetchar() & 0x3F;
+            if (ch < 0xF8)
+                return ((ch & 0x07) << 18) + (ch2 << 12) + (ch3 << 6) + ch4;
+            ch5 = Agetchar() & 0x3F;
+            if (ch < 0xFC)
+                return ((ch & 0x03) << 24) + (ch2 << 18) + (ch3 << 12) +
+                       (ch4 << 6) + ch5;
+            ch6 = Agetchar() & 0x3F;
+            return ((ch & 0x01) << 30) + (ch2 << 24) + (ch3 << 18) +
+                   (ch4 << 12) + (ch5 << 6) + ch6;
+        case 3: /* HZ */
+            ch = Agetchar();
+            if (ch == EOF) return ch;
+            if (hzmode) {
+                ch = (ch << 8) + Agetchar();
+                if (ch == ('}' << 8) + '~') {
+                    hzmode = 0;
+                    return getinchr();
+                }
+                return ch;
+            } else if (ch == '~') {
+                ch = Agetchar();
+                if (ch == '{') {
+                    hzmode = 1;
+                    return getinchr();
+                } else if (ch == '~') {
+                    return ch;
+                } else {
+                    return getinchr();
+                }
+            } else
+                return ch;
+        case 4: /* Shift-JIS */
+            ch = Agetchar();
+            if ((ch >= 0x80 && ch <= 0x9F) || (ch >= 0xE0 && ch <= 0xEF)) {
+                ch = (ch << 8) + Agetchar();
+            }
+            return ch;
+        default:
+            return 0x80;
     }
-  }
+}
 
 /****************************************************************************
 
@@ -2061,139 +2037,132 @@ inchr getinchr()
 
 ****************************************************************************/
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 #ifdef _WIN32
-  SetConsoleCP(CP_UTF8);
-  SetConsoleOutputCP(CP_UTF8);
-  // windows wide char output
+    SetConsoleCP(CP_UTF8);
+    SetConsoleOutputCP(CP_UTF8);
+    // windows wide char output
 #endif
 
-  inchr c,c2;
-  int i;
-  int last_was_eol_flag;
-/*---------------------------------------------------------------------------
-  wordbreakmode:
-    -1: /^$/ and blanks are to be absorbed (when line break was forced
-      by a blank or character larger than outlinelenlimit)
-    0: /^ *$/ and blanks are not to be absorbed
-    1: /[^ ]$/ no word break yet
-    2: /[^ ]  *$/
-    3: /[^ ]$/ had a word break
----------------------------------------------------------------------------*/
-  int wordbreakmode;
-  int char_not_added;
+    inchr c, c2;
+    int i;
+    int last_was_eol_flag;
+    /*---------------------------------------------------------------------------
+      wordbreakmode:
+        -1: /^$/ and blanks are to be absorbed (when line break was forced
+          by a blank or character larger than outlinelenlimit)
+        0: /^ *$/ and blanks are not to be absorbed
+        1: /[^ ]$/ no word break yet
+        2: /[^ ]  *$/
+        3: /[^ ]$/ had a word break
+    ---------------------------------------------------------------------------*/
+    int wordbreakmode;
+    int char_not_added;
 
-  Myargc = argc;
-  Myargv = argv;
-  getparams();
-  readcontrolfiles();
-  readfont();
-  linealloc();
+    Myargc = argc;
+    Myargv = argv;
+    getparams();
+    readcontrolfiles();
+    readfont();
+    linealloc();
 
-  wordbreakmode = 0;
-  last_was_eol_flag = 0;
+    wordbreakmode = 0;
+    last_was_eol_flag = 0;
 
 #ifdef TLF_FONTS
-  toiletfont = 0;
+    toiletfont = 0;
 #endif
 
-  while ((c = getinchr())!=EOF) {
-
-    if (c=='\n'&&paragraphflag&&!last_was_eol_flag) {
-      ungetinchr(c2 = getinchr());
-      c = ((isascii(c2)&&isspace(c2))?'\n':' ');
-      }
-    last_was_eol_flag = (isascii(c)&&isspace(c)&&c!='\t'&&c!=' ');
-
-    if (deutschflag) {
-      if (c>='[' && c<=']') {
-        c = deutsch[c-'['];
+    while ((c = getinchr()) != EOF) {
+        if (c == '\n' && paragraphflag && !last_was_eol_flag) {
+            ungetinchr(c2 = getinchr());
+            c = ((isascii(c2) && isspace(c2)) ? '\n' : ' ');
         }
-      else if (c >='{' && c <= '~') {
-        c = deutsch[c-'{'+3];
-        }
-      }
+        last_was_eol_flag = (isascii(c) && isspace(c) && c != '\t' && c != ' ');
 
-    c = handlemapping(c);
-
-    if (isascii(c)&&isspace(c)) {
-      c = (c=='\t'||c==' ') ? ' ' : '\n';
-      }
-
-    if ((c>'\0' && c<' ' && c!='\n') || c==127) continue;
-
-/*
-  Note: The following code is complex and thoroughly tested.
-  Be careful when modifying!
-*/
-
-    do {
-      char_not_added = 0;
-
-      if (wordbreakmode== -1) {
-        if (c==' ') {
-          break;
-          }
-        else if (c=='\n') {
-          wordbreakmode = 0;
-          break;
-          }
-        wordbreakmode = 0;
+        if (deutschflag) {
+            if (c >= '[' && c <= ']') {
+                c = deutsch[c - '['];
+            } else if (c >= '{' && c <= '~') {
+                c = deutsch[c - '{' + 3];
+            }
         }
 
-      if (c=='\n') {
+        c = handlemapping(c);
+
+        if (isascii(c) && isspace(c)) {
+            c = (c == '\t' || c == ' ') ? ' ' : '\n';
+        }
+
+        if ((c > '\0' && c < ' ' && c != '\n') || c == 127) continue;
+
+        /*
+          Note: The following code is complex and thoroughly tested.
+          Be careful when modifying!
+        */
+
+        do {
+            char_not_added = 0;
+
+            if (wordbreakmode == -1) {
+                if (c == ' ') {
+                    break;
+                } else if (c == '\n') {
+                    wordbreakmode = 0;
+                    break;
+                }
+                wordbreakmode = 0;
+            }
+
+            if (c == '\n') {
+                printline();
+                wordbreakmode = 0;
+            }
+
+            else if (addchar(c)) {
+                if (c != ' ') {
+                    wordbreakmode = (wordbreakmode >= 2) ? 3 : 1;
+                } else {
+                    wordbreakmode = (wordbreakmode > 0) ? 2 : 0;
+                }
+            }
+
+            else if (outlinelen == 0) {
+                for (i = 0; i < charheight; i++) {
+                    if (right2left && outputwidth > 1) {
+                        putstring(currchar[i] + STRLEN(currchar[i]) -
+                                  outlinelenlimit);
+                    } else {
+                        putstring(currchar[i]);
+                    }
+                }
+                wordbreakmode = -1;
+            }
+
+            else if (c == ' ') {
+                if (wordbreakmode == 2) {
+                    splitline();
+                } else {
+                    printline();
+                }
+                wordbreakmode = -1;
+            }
+
+            else {
+                if (wordbreakmode >= 2) {
+                    splitline();
+                } else {
+                    printline();
+                }
+                wordbreakmode = (wordbreakmode == 3) ? 1 : 0;
+                char_not_added = 1;
+            }
+
+        } while (char_not_added);
+    }
+
+    if (outlinelen != 0) {
         printline();
-        wordbreakmode = 0;
-        }
-
-      else if (addchar(c)) {
-        if (c!=' ') {
-          wordbreakmode = (wordbreakmode>=2)?3:1;
-          }
-        else {
-          wordbreakmode = (wordbreakmode>0)?2:0;
-          }
-        }
-
-      else if (outlinelen==0) {
-        for (i=0;i<charheight;i++) {
-          if (right2left && outputwidth>1) {
-            putstring(currchar[i]+STRLEN(currchar[i])-outlinelenlimit);
-            }
-          else {
-            putstring(currchar[i]);
-            }
-          }
-        wordbreakmode = -1;
-        }
-
-      else if (c==' ') {
-        if (wordbreakmode==2) {
-          splitline();
-          }
-        else {
-          printline();
-          }
-        wordbreakmode = -1;
-        }
-
-      else {
-        if (wordbreakmode>=2) {
-          splitline();
-          }
-        else {
-          printline();
-          }
-        wordbreakmode = (wordbreakmode==3)?1:0;
-        char_not_added = 1;
-        }
-
-      } while (char_not_added);
     }
-
-  if (outlinelen!=0) {
-    printline();
-    }
-  return 0;
+    return 0;
 }

@@ -74,28 +74,25 @@
 #include <stdio.h>
 
 typedef struct {
-  int            len;
-  unsigned char *ptr;
+    int len;
+    unsigned char *ptr;
 } ZFILE;
 
-#define Zgetc(f)                   \
-  ((--((f)->len) >= 0)             \
-    ? (unsigned char)(*(f)->ptr++) \
-    : _Zgetc (f))
+#define Zgetc(f) \
+    ((--((f)->len) >= 0) ? (unsigned char)(*(f)->ptr++) : _Zgetc(f))
 
-#define Zungetc(c,f) \
-  ((f)->ptr--, (f)->len++, (c))
+#define Zungetc(c, f) ((f)->ptr--, (f)->len++, (c))
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-ZFILE  *Zopen(const char *path, const char *mode);
-int    _Zgetc(ZFILE *stream);
-size_t  Zread(void *ptr, size_t size, size_t n, ZFILE *stream);
-int     Zseek(ZFILE *stream, long offset, int whence);
-long    Ztell(ZFILE *stream);
-int     Zclose(ZFILE *stream);
+ZFILE *Zopen(const char *path, const char *mode);
+int _Zgetc(ZFILE *stream);
+size_t Zread(void *ptr, size_t size, size_t n, ZFILE *stream);
+int Zseek(ZFILE *stream, long offset, int whence);
+long Ztell(ZFILE *stream);
+int Zclose(ZFILE *stream);
 
 #ifdef __cplusplus
 }
