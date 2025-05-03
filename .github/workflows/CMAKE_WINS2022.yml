@@ -26,7 +26,7 @@ jobs:
         uses: rlespinasse/git-commit-data-action@v1.5.0
 
       - name: Configure CMake
-        run: cmake -B ${{github.workspace}}/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFIGLET_INSTALL_LIBWINPTHREAD=ON
+        run: cmake -B ${{github.workspace}}/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/build/release_pkg -DFIGLET_INSTALL_LIBWINPTHREAD=ON
 
       - name: Build
         run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
@@ -35,7 +35,7 @@ jobs:
         working-directory: ${{github.workspace}}/build
         run: ctest -C ${{env.BUILD_TYPE}}
 
-      - name: Pack
+      - name: Build installer
         working-directory: ${{github.workspace}}/build
         run: cpack . -G WIX
 
@@ -45,9 +45,21 @@ jobs:
         with:
           path: ${{github.workspace}}/VERSION
 
-      - name: Upload package
+      - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
           name: FIGlet4Win_Main_Release-${{env.GIT_COMMIT_SHORT_SHA}}
           path: ${{github.workspace}}/build/figlet4win-${{steps.get-version.outputs.content}}-win64.msi
+
+      - name: Pack portable package
+        shell: pwsh
+        run: |
+          cmake --install ${{github.workspace}}/build
+          Compress-Archive -Path ${{github.workspace}}/build/release_pkg/* -DestinationPath ${{github.workspace}}/build/figlet4win-portable-${{steps.get-version.outputs.content}}-win64.zip
+
+      - name: Upload portable package
+        uses: actions/upload-artifact@v4
+        with:
+          name: FIGlet4Win_Main_Release_Portable-${{env.GIT_COMMIT_SHORT_SHA}}
+          path: ${{github.workspace}}/build/figlet4win-portable-${{steps.get-version.outputs.content}}-win64.zip
 
