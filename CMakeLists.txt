@@ -145,6 +145,10 @@ install(
 )
 if(${FIGLET_BUILD_FIGINSTALL})
     install(
+        FILES ${OPENSSL_CRYPTO_DLL} ${OPENSSL_SSL_DLL}
+        DESTINATION .
+    )
+    install(
         TARGETS figinstall libcurl_shared
         RUNTIME DESTINATION .
     )
@@ -158,37 +162,42 @@ install(
     FILES ${CMAKE_SOURCE_DIR}/figlist.bat ${CMAKE_SOURCE_DIR}/showfigfonts.bat
     DESTINATION .
 )
-execute_process(
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/find_mingw_libgcc_s_seh.py
-    TIMEOUT 5
-    OUTPUT_VARIABLE MINGW_LIBGCC_S_SEH_PATH
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-message(STATUS "MinGW libgcc_s_seh path: ${MINGW_LIBGCC_S_SEH_PATH}")
-execute_process(
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/find_mingw_libstdc++.py
-    TIMEOUT 5
-    OUTPUT_VARIABLE MINGW_LIBSTDCPP_PATH
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-message(STATUS "MinGW libstdc++ path: ${MINGW_LIBSTDCPP_PATH}")
+
+include(cmake/find_file_from_mingw.cmake)
+
+find_file_from_mingw("libgcc_s_seh-1.dll" MINGW_LIBGCC_S_SEH_PATH)
+if(MINGW_LIBGCC_S_SEH_PATH)
+    message(STATUS "MinGW libgcc_s_seh path: ${MINGW_LIBGCC_S_SEH_PATH}")
+else()
+    message(FATAL_ERROR "MinGW libgcc_s_seh dll not found!")
+endif()
+
+find_file_from_mingw("libstdc++-6.dll" MINGW_LIBSTDCPP_PATH)
+if(MINGW_LIBSTDCPP_PATH)
+    message(STATUS "MinGW libstdc++ path: ${MINGW_LIBSTDCPP_PATH}")
+else()
+    message(FATAL_ERROR "MinGW libstdc++ dll not found!")
+endif()
+
 install(
-    FILES ${MINGW_LIBGCC_S_SEH_PATH} ${MINGW_LIBSTDCPP_PATH} ${OPENSSL_CRYPTO_DLL} ${OPENSSL_SSL_DLL}
+    FILES ${MINGW_LIBGCC_S_SEH_PATH} ${MINGW_LIBSTDCPP_PATH}
     DESTINATION .
 )
+
 if(${FIGLET_INSTALL_LIBWINPTHREAD})
-    execute_process(
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/find_mingw_libwinpthread.py
-        TIMEOUT 5
-        OUTPUT_VARIABLE MINGW_LIBWINPTHREAD_PATH
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    message(STATUS "MinGW libwinpthread path: ${MINGW_LIBWINPTHREAD_PATH}")
+    find_file_from_mingw("libwinpthread-1.dll" MINGW_LIBWINPTHREAD_PATH)
+    if(MINGW_LIBWINPTHREAD_PATH)
+        message(STATUS "MinGW libwinpthread path: ${MINGW_LIBWINPTHREAD_PATH}")
+    else()
+        message(FATAL_ERROR "MinGW libwinpthread dll not found!")
+    endif()
+    
     install(
         FILES ${MINGW_LIBWINPTHREAD_PATH}
         DESTINATION .
     )
 endif()
+
 if(EXISTS ${CMAKE_SOURCE_DIR}/doc/figlet4win.chm)
     install(
         FILES ${CMAKE_SOURCE_DIR}/figman.bat
