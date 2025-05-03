@@ -110,6 +110,7 @@ char *suffix;
 void usageerr() {
     fprintf(stderr, "chkfont by Glenn Chappell <ggc@uiuc.edu>\n");
     fprintf(stderr, "Version: %s, date: %s\n", VERSION, DATE);
+    fprintf(stderr, "Packed with FIGlet4Win %s\n", FIGLET4WINVERSION);
     fprintf(stderr, "Checks figlet 2.0/2.1 font files for format errors.\n");
     fprintf(stderr, "(Does not modify font files.)\n");
     fprintf(stderr, "Usage: %s fontfile ...\n", myname);
