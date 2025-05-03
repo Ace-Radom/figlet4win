@@ -51,15 +51,42 @@ jobs:
           name: FIGlet4Win_Main_Release-${{env.GIT_COMMIT_SHORT_SHA}}
           path: ${{github.workspace}}/build/figlet4win-${{steps.get-version.outputs.content}}-win64.msi
 
-      - name: Pack portable package
+      - name: Pack full portable package
         shell: pwsh
         run: |
           cmake --install ${{github.workspace}}/build
-          Compress-Archive -Path ${{github.workspace}}/build/release_pkg/* -DestinationPath ${{github.workspace}}/build/figlet4win-portable-${{steps.get-version.outputs.content}}-win64.zip
+          Compress-Archive -Path ${{github.workspace}}/build/release_pkg/* -DestinationPath ${{github.workspace}}/build/figlet4win-portable-full-${{steps.get-version.outputs.content}}-win64.zip
 
-      - name: Upload portable package
+      - name: Upload full portable package
         uses: actions/upload-artifact@v4
         with:
-          name: FIGlet4Win_Main_Release_Portable-${{env.GIT_COMMIT_SHORT_SHA}}
-          path: ${{github.workspace}}/build/figlet4win-portable-${{steps.get-version.outputs.content}}-win64.zip
+          name: FIGlet4Win_Main_Release_Portable_Full-${{env.GIT_COMMIT_SHORT_SHA}}
+          path: ${{github.workspace}}/build/figlet4win-portable-full-${{steps.get-version.outputs.content}}-win64.zip
+
+      - name: Cleanup full build result
+        run: |
+          cmake --build ${{github.workspace}}/build --target clean
+          rd /s /q ${{github.workspace}}/build/release_pkg
+
+      - name: Configure CMake (lite)
+        run: cmake -B ${{github.workspace}}/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/build/release_pkg -DFIGLET_BUILD_FIGINSTALL=OFF -DFIGLET_INSTALL_LIBWINPTHREAD=ON
+
+      - name: Build (lite)
+        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+      - name: Test (lite)
+        working-directory: ${{github.workspace}}/build
+        run: ctest -C ${{env.BUILD_TYPE}}
+
+      - name: Pack lite portable package
+        shell: pwsh
+        run: |
+          cmake --install ${{github.workspace}}/build
+          Compress-Archive -Path ${{github.workspace}}/build/release_pkg/* -DestinationPath ${{github.workspace}}/build/figlet4win-portable-lite-${{steps.get-version.outputs.content}}-win64.zip
+
+      - name: Upload lite portable package
+        uses: actions/upload-artifact@v4
+        with:
+          name: FIGlet4Win_Main_Release_Portable_Lite-${{env.GIT_COMMIT_SHORT_SHA}}
+          path: ${{github.workspace}}/build/figlet4win-portable-lite-${{steps.get-version.outputs.content}}-win64.zip
 
