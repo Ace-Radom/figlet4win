@@ -14,7 +14,7 @@ FIGlet output is generally reminiscent of the sort of "signatures" many people l
 
 And FIGlet4Win is a project based on the original FIGlet, which is designed for DOS and Unix-like systems, to let it operate on modern Windows just like it used to be.
 
-Since the official FIGlet on Windows (FIGWin) is a re-implementation of FIGlet with a GUI and it is not maintained after Windows 2000, and ~~we actually don't need to change a lot of things to make FIGlet run well on Windows 11~~, FIGlet4Win is totally based on the original FIGlet code and GUI is not considered.
+Since the official FIGlet on Windows (FIGWin) is a re-implementation of FIGlet with a GUI and it is not maintained after Windows 2000, and ~~we actually don't need to change a lot of things to make FIGlet run well on Windows 11~~, FIGlet4Win is totally based on FIGlet 2.2.5 code and a GUI is not considered.
 
 The official FIGlet web page: http://www.figlet.org/
 

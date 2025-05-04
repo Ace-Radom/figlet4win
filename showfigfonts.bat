@@ -1,6 +1,6 @@
 @rem showfigfonts for Windows by Sichen Lyu, 17 Jan 2024
 @rem Based on the original showfigfonts script by Glenn Chappell <ggc@uiuc.edu>, 25 Aug 1994
-@rem You can also see the original script under this directory (`showfigfonts`)
+@rem You can check the original script at: https://github.com/cmatsuoka/figlet/blob/master/showfigfonts
 @rem
 @rem Prints a list of available figlet fonts, along with a sample of each
 @rem font.  If directory is given, lists fonts in that directory; otherwise

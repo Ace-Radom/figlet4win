@@ -1,6 +1,6 @@
 @rem figlist for Windows by Sichen Lyu, 17 Jan 2024
 @rem Based on the original figlist script by Glenn Chappell <gcc@uiuc.edu>, 25 Aug 1994
-@rem You can also see the original script under this directory (`figlist`)
+@rem You can check the original script at: https://github.com/cmatsuoka/figlet/blob/master/figlist
 @rem
 @rem Lists all fonts and control files in figlet's default font directory.
 @rem Replaces "figlet -F", which was removed from figlet version 2.1.
