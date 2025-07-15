@@ -980,7 +980,13 @@ void getparams() {
         }
     }
 #endif
-    fontname = DEFAULTFONTFILE;
+    fontname = (char *)myalloc(MAXPATHLEN);
+    env = getenv("FIGLET_DEFAULTFONT");
+    if (env != NULL) {
+        strcpy(fontname, env);
+    } else {
+        strcpy(fontname, DEFAULTFONTFILE);
+    }
     cfilelist = NULL;
     cfilelistend = &cfilelist;
     commandlist = NULL;
@@ -1098,6 +1104,7 @@ void getparams() {
                 fontdirname = optarg;
                 break;
             case 'f':
+                free(fontname);
                 fontname = optarg;
                 if (suffixcmp(fontname, FONTFILESUFFIX)) {
                     fontname[MYSTRLEN(fontname) - FSUFFIXLEN] = '\0';
