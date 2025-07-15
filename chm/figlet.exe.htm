@@ -63,8 +63,10 @@ the options are usually still available.</P>
 it. <STRONG>FIGlet</STRONG> looks for the file first in the default font 
 directory and then in the current directory, or, if <U>font-file</U><STRONG> 
 </STRONG>was given as a full pathname, in the given directory. If the 
-<STRONG>-f</STRONG> option is not specified, <STRONG>FIGlet</STRONG> uses the 
-font that was specified when it was compiled. To find out wich font this is, use 
+<STRONG>-f</STRONG> option is not specified, <STRONG>FIGlet</STRONG> uses the font that was specified when it 
+was compiled, or the value of <STRONG>FIGLET_DEFAULTFONT</STRONG> 
+environment variable when it is set (See <STRONG>ENVIRONMENT</STRONG>   
+  in this manual page). To find out which font is used by default, use 
 the <STRONG>-I3</STRONG> option.</P>
 <UL>
   <LI>
@@ -418,6 +420,10 @@ sequences, and are good for getting a quick at UTF-8 unicode files, using the
 <H4>FIGLET_FONTDIR</H4> 
 <P>If %<STRONG>FIGLET_FONTDIR</STRONG>% is set in system 
 environment variable, its value is used as a path to search for font files.</P> 
+<H4>FIGLET_DEFAULTFONT</H4> 
+<P>If %<STRONG>FIGLET_DEFAULTFONT</STRONG>% is set in 
+system environment variable, its value is used as the default font. This is new 
+in <STRONG>FIGlet4Win</STRONG>.</P> 
 <H3>FILES</H3> 
 <P>
 <TABLE style="BORDER-COLLAPSE: collapse" borderColor=#000000 cellSpacing=0 

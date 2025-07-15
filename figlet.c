@@ -41,8 +41,9 @@
 /* FIGlet4Win (FIGlet for modern Windows) */
 /* port by Sichen Lyu */
 /* based on FIGlet 2.2.5 */
-/* Release 1.0.0 Mar 2024: finish of FIGlet Windows porting, first official
+/* Release 1.0.0 06 Mar 2024: finish of FIGlet Windows porting, first official
  * release of FIGlet4Win */
+/* Release 1.0.3 16 Jul 2025: add FIGLET_DEFAULTFONT envar */
 
 /*---------------------------------------------------------------------------
   DEFAULTFONTDIR and DEFAULTFONTFILE should be defined in the Makefile.
