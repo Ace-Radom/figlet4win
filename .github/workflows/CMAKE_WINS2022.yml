@@ -65,13 +65,10 @@ jobs:
 
   build-lite:
     runs-on: windows-latest
+
+    steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Revert to CMake 3.27
-        run: |
-          choco uninstall cmake.install -x
-          choco install cmake.install --version=3.27.9
 
       - name: Git Commit Data
         uses: rlespinasse/git-commit-data-action@v1.5.0
@@ -103,4 +100,3 @@ jobs:
         with:
           name: FIGlet4Win_Main_Release_Portable_Lite-${{env.GIT_COMMIT_SHORT_SHA}}
           path: ${{github.workspace}}/build/figlet4win-portable-lite-${{steps.get-version.outputs.content}}-win64.zip
-
