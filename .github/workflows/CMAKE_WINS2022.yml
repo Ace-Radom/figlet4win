@@ -10,8 +10,8 @@ env:
   BUILD_TYPE: Release
 
 jobs:
-  build:
-    runs-on: windows-2022
+  build-full:
+    runs-on: windows-latest
 
     steps:
       - name: Checkout code
@@ -63,18 +63,34 @@ jobs:
           name: FIGlet4Win_Main_Release_Portable_Full-${{env.GIT_COMMIT_SHORT_SHA}}
           path: ${{github.workspace}}/build/figlet4win-portable-full-${{steps.get-version.outputs.content}}-win64.zip
 
-      - name: Cleanup full build result
-        run: cmake --build ${{github.workspace}}/build --target clean
+  build-lite:
+    runs-on: windows-latest
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Configure CMake (lite)
+      - name: Revert to CMake 3.27
+        run: |
+          choco uninstall cmake.install -x
+          choco install cmake.install --version=3.27.9
+
+      - name: Git Commit Data
+        uses: rlespinasse/git-commit-data-action@v1.5.0
+
+      - name: Configure CMake
         run: cmake -B ${{github.workspace}}/build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_INSTALL_PREFIX=${{github.workspace}}/build/release_pkg_lite -DFIGLET_BUILD_FIGINSTALL=OFF -DFIGLET_INSTALL_LIBWINPTHREAD=ON
 
-      - name: Build (lite)
+      - name: Build
         run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-      - name: Test (lite)
+      - name: Test
         working-directory: ${{github.workspace}}/build
         run: ctest -C ${{env.BUILD_TYPE}}
+
+      - name: Get version
+        id: get-version
+        uses: juliangruber/read-file-action@v1
+        with:
+          path: ${{github.workspace}}/VERSION
 
       - name: Pack lite portable package
         shell: pwsh
